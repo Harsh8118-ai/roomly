@@ -1,0 +1,361 @@
+[
+ {
+  "text": "vegetables 150rs",
+  "expect": {
+   "kind": "expense",
+   "amount": 150,
+   "title": "Vegetables",
+   "category": "vegetables",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "petrol 500",
+  "expect": {
+   "kind": "expense",
+   "amount": 500,
+   "title": "Petrol",
+   "category": "transport",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "groceries 1200rs",
+  "expect": {
+   "kind": "expense",
+   "amount": 1200,
+   "title": "Groceries",
+   "category": "groceries",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "Veg 150",
+  "expect": {
+   "kind": "expense",
+   "amount": 150,
+   "title": "Veg",
+   "category": "vegetables",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "₹1,850 groceries",
+  "expect": {
+   "kind": "expense",
+   "amount": 1850,
+   "title": "Groceries",
+   "category": "groceries",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "milk: 60",
+  "expect": {
+   "kind": "expense",
+   "amount": 60,
+   "title": "Milk",
+   "category": "milk",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "paid 450 for sabzi",
+  "expect": {
+   "kind": "expense",
+   "amount": 450,
+   "title": "Sabzi",
+   "category": "vegetables",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "bought atta 10kg 520",
+  "expect": {
+   "kind": "expense",
+   "amount": 520,
+   "title": "Atta 10kg",
+   "category": "groceries",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "gas refill rs.1130",
+  "expect": {
+   "kind": "expense",
+   "amount": 1130,
+   "title": "Gas refill",
+   "category": "utilities",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "wifi recharge 700/-",
+  "expect": {
+   "kind": "expense",
+   "amount": 700,
+   "title": "Wifi recharge",
+   "category": "utilities",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "cab 2k",
+  "expect": {
+   "kind": "expense",
+   "amount": 2000,
+   "title": "Cab",
+   "category": "transport",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "yesterday vegetables 150",
+  "expect": {
+   "kind": "expense",
+   "amount": 150,
+   "title": "Vegetables",
+   "dayOffset": -1
+  }
+ },
+ {
+  "text": "doodh 60",
+  "expect": {
+   "kind": "expense",
+   "amount": 60,
+   "category": "milk"
+  }
+ },
+ {
+  "text": "Vegetables 150.50",
+  "expect": {
+   "kind": "expense",
+   "amount": 151
+  }
+ },
+ {
+  "text": "RS 450 plumber",
+  "expect": {
+   "kind": "expense",
+   "amount": 450,
+   "category": "maintenance"
+  }
+ },
+ {
+  "text": "I bought some vegetables for the house for 150 today",
+  "expect": {
+   "kind": "expense",
+   "amount": 150,
+   "confidence": "medium"
+  }
+ },
+ {
+  "text": "link RM-7K2Q9X",
+  "expect": {
+   "kind": "command",
+   "command": "link",
+   "arg": "RM-7K2Q9X"
+  }
+ },
+ {
+  "text": "!link rm-7k2q9x",
+  "expect": {
+   "kind": "command",
+   "command": "link",
+   "arg": "RM-7K2Q9X"
+  }
+ },
+ {
+  "text": "help",
+  "expect": {
+   "kind": "command",
+   "command": "help"
+  }
+ },
+ {
+  "text": "/undo",
+  "expect": {
+   "kind": "command",
+   "command": "undo"
+  }
+ },
+ {
+  "text": "balance",
+  "expect": {
+   "kind": "command",
+   "command": "balance"
+  }
+ },
+ {
+  "text": "total",
+  "expect": {
+   "kind": "command",
+   "command": "total"
+  }
+ },
+ {
+  "text": "ok",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "lol 😂😂",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "come at 5 pm",
+  "expect": {
+   "kind": "ignore",
+   "reason": "time"
+  }
+ },
+ {
+  "text": "dinner at 8:30",
+  "expect": {
+   "kind": "ignore",
+   "reason": "time"
+  }
+ },
+ {
+  "text": "see you at 7",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "who is buying milk?",
+  "expect": {
+   "kind": "ignore",
+   "reason": "question"
+  }
+ },
+ {
+  "text": "I'll pay 200 tomorrow",
+  "expect": {
+   "kind": "ignore",
+   "reason": "chatter"
+  }
+ },
+ {
+  "text": "sent 500 to rahul",
+  "expect": {
+   "kind": "ignore",
+   "reason": "chatter"
+  }
+ },
+ {
+  "text": "room 12 key",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "flat 302",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "5th floor",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "milk 2 litres",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "meeting on 12/10",
+  "expect": {
+   "kind": "ignore",
+   "reason": "date"
+  }
+ },
+ {
+  "text": "1 2 3 4",
+  "expect": {
+   "kind": "ignore"
+  }
+ },
+ {
+  "text": "150",
+  "expect": {
+   "kind": "ignore",
+   "reason": "no-description"
+  }
+ },
+ {
+  "text": "vegetables",
+  "expect": {
+   "kind": "ignore",
+   "reason": "no-amount"
+  }
+ },
+ {
+  "text": "vegetables 99999999",
+  "expect": {
+   "kind": "ignore",
+   "reason": "amount-out-of-range"
+  }
+ },
+ {
+  "text": "",
+  "expect": {
+   "kind": "ignore",
+   "reason": "empty"
+  }
+ },
+ {
+  "text": "good morning 5",
+  "expect": {
+   "kind": "ignore",
+   "reason": "chatter"
+  }
+ },
+ {
+  "text": "happy birthday 2 all",
+  "expect": {
+   "kind": "ignore",
+   "reason": "chatter"
+  }
+ },
+ {
+  "text": "paid 450",
+  "expect": {
+   "kind": "ignore",
+   "reason": "no-description"
+  }
+ },
+ {
+  "text": "Paid for milk ₹60 today",
+  "expect": {
+   "kind": "expense",
+   "amount": 60,
+   "title": "Milk",
+   "category": "milk",
+   "confidence": "high"
+  }
+ },
+ {
+  "text": "chai 10",
+  "expect": {
+   "kind": "expense",
+   "amount": 10,
+   "category": "food"
+  }
+ },
+ {
+  "text": "bijli bill 1,240",
+  "expect": {
+   "kind": "expense",
+   "amount": 1240,
+   "category": "utilities"
+  }
+ }
+]

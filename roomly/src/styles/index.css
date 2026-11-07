@@ -1,0 +1,174 @@
+@import '@fontsource-variable/geist';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Design tokens — every colour in the product comes from here.        */
+/* Values are space-separated RGB channels so Tailwind can add alpha.  */
+/* ------------------------------------------------------------------ */
+:root {
+  color-scheme: light;
+
+  --bg: 247 247 244;
+  --surface: 255 255 255;
+  --surface-2: 242 242 238;
+  --elevated: 255 255 255;
+  --fg: 23 23 23;
+  --muted: 108 108 104;
+  --subtle: 160 160 154;
+  --line: 232 232 227;
+  --line-strong: 214 214 206;
+
+  --accent: 111 143 120;
+  --accent-strong: 70 105 83;
+  --accent-soft: 232 239 233;
+  --on-accent: 255 255 255;
+
+  --success: 66 122 82;
+  --success-soft: 230 240 232;
+  --warning: 150 105 38;
+  --warning-soft: 249 240 223;
+  --danger: 184 82 72;
+  --danger-soft: 250 233 230;
+  --info: 62 105 158;
+  --info-soft: 230 239 249;
+
+  /* chart palette — restrained, brand-led */
+  --chart-1: 63 107 77;
+  --chart-2: 111 143 120;
+  --chart-3: 164 192 172;
+  --chart-4: 201 178 138;
+  --chart-5: 142 154 168;
+  --chart-6: 214 214 206;
+
+  /* member avatar tones: background / foreground */
+  --tone-1-bg: 226 237 229; --tone-1-fg: 53 92 66;
+  --tone-2-bg: 244 235 218; --tone-2-fg: 125 86 28;
+  --tone-3-bg: 247 228 224; --tone-3-fg: 150 62 52;
+  --tone-4-bg: 224 235 247; --tone-4-fg: 46 84 133;
+  --tone-5-bg: 236 229 244; --tone-5-fg: 96 66 134;
+  --tone-6-bg: 235 235 230; --tone-6-fg: 80 80 76;
+
+  /* Roomly Wrapped story backdrops (same in both themes) */
+  --story-1: 22 38 29; --story-2: 31 54 41; --story-3: 40 68 52; --story-4: 52 62 48; --story-5: 28 46 56; --story-fg: 244 246 240;
+
+  --shadow-xs: 0 1px 2px rgb(23 23 23 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(23 23 23 / 0.04), 0 2px 8px rgb(23 23 23 / 0.04);
+  --shadow-md: 0 8px 30px rgb(23 23 23 / 0.07);
+  --shadow-lg: 0 20px 60px rgb(23 23 23 / 0.14);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: 14 15 15;
+  --surface: 21 23 23;
+  --surface-2: 27 29 29;
+  --elevated: 30 33 32;
+  --fg: 245 245 242;
+  --muted: 163 163 160;
+  --subtle: 112 114 111;
+  --line: 37 40 39;
+  --line-strong: 54 58 56;
+
+  --accent: 126 168 140;
+  --accent-strong: 134 180 148;
+  --accent-soft: 28 41 33;
+  --on-accent: 10 22 15;
+
+  --success: 111 177 128;
+  --success-soft: 24 40 30;
+  --warning: 214 169 98;
+  --warning-soft: 45 37 22;
+  --danger: 228 124 112;
+  --danger-soft: 50 29 27;
+  --info: 125 168 224;
+  --info-soft: 24 34 48;
+
+  --chart-1: 134 180 148;
+  --chart-2: 98 138 112;
+  --chart-3: 66 98 78;
+  --chart-4: 190 165 118;
+  --chart-5: 130 142 158;
+  --chart-6: 70 74 72;
+
+  --tone-1-bg: 31 52 40; --tone-1-fg: 160 205 174;
+  --tone-2-bg: 56 46 26; --tone-2-fg: 224 190 124;
+  --tone-3-bg: 60 34 31; --tone-3-fg: 238 160 150;
+  --tone-4-bg: 28 42 61; --tone-4-fg: 150 188 236;
+  --tone-5-bg: 44 34 60; --tone-5-fg: 196 170 232;
+  --tone-6-bg: 42 44 43; --tone-6-fg: 200 200 196;
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 8px 30px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 20px 60px rgb(0 0 0 / 0.55);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-bg font-sans text-[15px] leading-relaxed text-fg antialiased;
+    font-feature-settings: 'cv11', 'ss03';
+    overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+  h1, h2, h3, h4 { @apply tracking-tight; text-wrap: balance; }
+  p { text-wrap: pretty; }
+  ::selection { background: rgb(var(--accent) / 0.28); }
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent-strong));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  input, textarea, select { font: inherit; }
+  img { max-width: 100%; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgb(var(--line-strong)); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer components {
+  /* Typographic scale */
+  .t-display { @apply font-semibold; font-size: clamp(2.5rem, 7vw, 4.5rem); line-height: 1.02; letter-spacing: -0.035em; }
+  .t-large { @apply font-semibold; font-size: clamp(2rem, 4.6vw, 2.75rem); line-height: 1.08; letter-spacing: -0.03em; }
+  .t-page { @apply font-semibold; font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.15; letter-spacing: -0.025em; }
+  .t-section { @apply text-lg font-semibold; letter-spacing: -0.015em; }
+  .t-small { @apply text-[13px] leading-snug; }
+  .t-micro { @apply text-xs leading-snug; }
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum', 'cv11', 'ss03'; }
+  .t-money-xl { @apply tnum font-semibold; font-size: clamp(1.75rem, 3.2vw, 2.25rem); line-height: 1.05; letter-spacing: -0.03em; }
+
+  /* Surfaces */
+  .card { @apply rounded-xl border border-line bg-surface; }
+  .card-hover { @apply transition-[transform,box-shadow,border-color] duration-200 ease-out hover:border-line-strong hover:shadow-md; }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-surface-2; }
+  .skeleton::after {
+    content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(var(--fg) / 0.045), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+  .hide-scrollbar { scrollbar-width: none; }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton::after { display: none; }
+}
+
+.recharts-wrapper, .recharts-surface { outline: none !important; }
+.recharts-wrapper *:focus { outline: none; }
+
+@keyframes story-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }

@@ -1,0 +1,33 @@
+{
+  "name": "roomly-server",
+  "version": "1.0.0",
+  "description": "ROOMLY API \u2014 Express + MongoDB",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "seed": "node --env-file-if-exists=.env src/scripts/seed.js",
+    "test": "node --env-file-if-exists=.env.test --test --test-concurrency=1 tests/*.test.js",
+    "whatsapp:doctor": "node --env-file-if-exists=.env src/scripts/whatsapp-doctor.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "cors": "^2.8.6",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.10.4",
+    "morgan": "^1.12.1",
+    "nodemailer": "^10.0.14",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}
