@@ -140,7 +140,7 @@ function pushNotification(h: Household, type: AppNotification['type'], title: st
 }
 
 const TONES = [1, 2, 4, 5, 3, 6]
-const makeInviteCode = () => String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+const makeInviteCode = () => { let code = ''; do { code = String(Math.floor(Math.random() * 10000)).padStart(4, '0') } while (getDb().households.some((h) => h.inviteCode === code)); return code }
 
 /* ------------------------------ router ------------------------------ */
 type Handler = (req: MockRequest, m: RegExpMatchArray) => unknown
