@@ -140,7 +140,7 @@ function pushNotification(h: Household, type: AppNotification['type'], title: st
 }
 
 const TONES = [1, 2, 4, 5, 3, 6]
-const makeInviteCode = (name: string) => `${name.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase() || 'HOME'}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+const makeInviteCode = () => String(Math.floor(Math.random() * 10000)).padStart(4, '0')
 
 /* ------------------------------ router ------------------------------ */
 type Handler = (req: MockRequest, m: RegExpMatchArray) => unknown
@@ -194,9 +194,19 @@ route('POST', '/households', true, ({ token, body }) => {
   const db = getDb(); const u = authUser(token)
   if (!String(body.name ?? '').trim()) throw new ApiError(422, 'Give your household a name.')
   const me: Member = { id: u.id, name: u.name, email: u.email, role: 'admin', status: 'active', tone: 1, joinedAt: new Date().toISOString() }
-  const h: Household = { id: uid('h'), name: String(body.name).trim(), inviteCode: makeInviteCode(body.name), currency: 'INR', createdAt: new Date().toISOString(), members: [me] }
+  const h: Household = { id: uid('h'), name: String(body.name).trim(), inviteCode: makeInviteCode(), currency: 'INR', createdAt: new Date().toISOString(), members: [me] }
   db.households.push(h); u.householdIds.push(h.id); u.currentHouseholdId = h.id; persist()
   return h
+})
+route('POST', '/households/join', true, ({ token, body }) => {
+  const db = getDb(); const u = authUser(token)
+  const h = db.households.find((item) => item.inviteCode === String(body.inviteCode ?? '').trim())
+  if (!h) throw new ApiError(404, 'That four-digit code does not match a group.')
+  if (h.members.some((m) => m.id === u.id)) throw new ApiError(409, 'You are already in this group.')
+  if (h.members.length >= 12) throw new ApiError(422, 'A group can have up to 12 members.')
+  h.members.push({ id: u.id, name: u.name, email: u.email, role: 'member', status: 'active', tone: TONES[h.members.length % TONES.length], joinedAt: new Date().toISOString() })
+  if (!u.householdIds.includes(h.id)) u.householdIds.push(h.id)
+  u.currentHouseholdId = h.id; persist(); return h
 })
 route('PUT', '/households/current', true, ({ token, body }) => {
   const u = authUser(token)

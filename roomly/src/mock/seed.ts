@@ -17,7 +17,7 @@ const members: Member[] = [
 export const demoHousehold = (): Household => ({
   id: DEMO_HOUSEHOLD_ID,
   name: 'Casa 4',
-  inviteCode: 'CASA-4X7K',
+  inviteCode: '0427',
   currency: 'INR',
   createdAt: '2026-01-04T10:00:00+05:30',
   members,

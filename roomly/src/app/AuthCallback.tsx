@@ -1,0 +1,31 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { FullScreenLoader } from '@/components/layout/RouteGuards'
+import { authService } from '@/services/authService'
+import { tokenStore } from '@/services/api/client'
+import { ME_KEY } from '@/store/AuthProvider'
+import { ROUTES } from '@/constants/routes'
+
+export function AuthCallback() {
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const qc = useQueryClient()
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let active = true
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('token')
+    if (!token) { setFailed(true); return }
+    tokenStore.set(token)
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.search)
+    authService.getCurrentUser().then((user) => {
+      if (!active) return
+      qc.setQueryData(ME_KEY, user)
+      const next = params.get('next') || (user.currentHouseholdId ? ROUTES.dashboard : ROUTES.onboarding)
+      navigate(next.startsWith('/') && !next.startsWith('//') ? next : ROUTES.dashboard, { replace: true })
+    }).catch(() => { tokenStore.clear(); if (active) setFailed(true) })
+    return () => { active = false }
+  }, [navigate, params, qc])
+  if (failed) return <div className="grid min-h-dvh place-items-center p-6 text-center"><div><p className="font-semibold">Sign-in could not be completed.</p><a className="mt-3 inline-block underline" href="/login">Try again</a></div></div>
+  return <FullScreenLoader />
+}

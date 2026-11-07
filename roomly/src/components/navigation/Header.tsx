@@ -13,7 +13,7 @@ import { UserMenu } from './UserMenu'
 import { ROUTES } from '@/constants/routes'
 
 const TITLES: [string, string][] = [
-  ['/app/expenses', 'Expenses'], ['/app/settlement', 'Settlement'], ['/app/members', 'Members'],
+  ['/app/expenses', 'Expenses'], ['/app/settlement', 'Settlement'], ['/app/members', 'Group'],
   ['/app/history', 'History'], ['/app/settings', 'Settings'],
 ]
 

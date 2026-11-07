@@ -70,7 +70,7 @@ function ProfileSection() {
       </div>
       <form onSubmit={save} noValidate className="grid gap-4 sm:grid-cols-2">
         <Input label="Name" autoComplete="name" error={errors.name?.message} {...register('name')} />
-        <Input label="Email" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
+        <Input label="Google account" type="email" disabled hint="Managed by Google sign-in." {...register('email')} />
         <div className="sm:col-span-2"><Button type="submit" disabled={!isDirty} loading={busy} loadingText="Saving…">Save changes</Button></div>
       </form>
     </SettingsSection>
