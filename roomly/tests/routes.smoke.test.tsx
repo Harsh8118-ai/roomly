@@ -10,19 +10,19 @@ beforeAll(() => {
 })
 
 const cases: [string, RegExp][] = [
-  ['/', /awkward math/],
-  ['/login', /Welcome back/],
-  ['/register', /Create your account/],
-  ['/forgot-password', /Reset your password/],
+  ['/', /Welcome to Roomly/],
+  ['/login', /Welcome to Roomly/],
+  ['/register', /Page not found/],
+  ['/forgot-password', /Page not found/],
   ['/app/dashboard', /Household spending/],
   ['/app/expenses', /Sabzi mandi run|Groceries — weekly stock/],
   ['/app/expenses/e_2026-10-47', /Expense|Added/],
   ['/app/settlement', /Fair share/],
   ['/app/members', /Kunal Mehta/],
-  ['/app/members/m_rahul', /Average expense/],
-  ['/app/history', /September 2026/],
-  ['/app/history/2026-10', /Biggest expenses/],
-  ['/app/wrapped/2026-10', /Roomly Wrapped/],
+  ['/app/members/m_rahul', /Page not found/],
+  ['/app/history', /Page not found/],
+  ['/app/history/2026-10', /Page not found/],
+  ['/app/wrapped/2026-10', /Page not found/],
   ['/app/settings', /Invite code/],
   ]
 

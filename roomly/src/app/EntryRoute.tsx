@@ -1,17 +1,14 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/store/AuthProvider'
 import { ROUTES } from '@/constants/routes'
 import { FullScreenLoader } from '@/components/layout/RouteGuards'
-
-/**
- * Roomly is a private utility, not a public marketing site.
- * Signed-in users go straight to their group dashboard; everyone else signs in.
- */
 export function EntryRoute() {
   const { status, user } = useAuth()
-
+  const location = useLocation()
   if (status === 'loading') return <FullScreenLoader />
-  if (!user) return <Navigate to={ROUTES.login} replace />
+  const join = new URLSearchParams(location.search).get('join')
+  if (!user) return <Navigate to={ROUTES.login} replace state={{ from: join ? `/onboarding?join=${encodeURIComponent(join)}` : ROUTES.dashboard }} />
+  if (join && !user.currentHouseholdId) return <Navigate to={`/onboarding?join=${encodeURIComponent(join)}`} replace />
   if (!user.currentHouseholdId) return <Navigate to={ROUTES.onboarding} replace />
   return <Navigate to={ROUTES.dashboard} replace />
 }

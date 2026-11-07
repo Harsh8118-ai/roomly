@@ -24,7 +24,7 @@ export const profileBody = z.object({
 
 export const householdNameBody = z.object({ name: z.string({ error: 'Give your household a name.' }).trim().min(2, 'Give your household a name.').max(40, 'Keep the name under 40 characters.') })
 export const switchBody = z.object({ householdId: objectId })
-export const joinBody = z.object({ inviteCode: z.string().trim().min(4, 'Enter an invite code').max(32) })
+export const joinBody = z.object({ inviteCode: z.string().trim().regex(/^\d{4}$/, 'Enter the four-digit invite code') })
 export const inviteBody = z.object({
   name: z.string({ error: 'Add a name for your housemate.' }).trim().min(1, 'Add a name for your housemate.').max(60),
   email: z.union([z.literal(''), email]).optional(),

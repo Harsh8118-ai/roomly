@@ -20,7 +20,7 @@ export function MembersPage() {
 
   return (
     <>
-      <PageHeader title="Members" description={`${members.length || ''} people sharing the home · ${monthLabel(month)}`}
+      <PageHeader title="Group" description={`${members.length || ''} people sharing the home · ${monthLabel(month)}`}
         actions={<Button variant="secondary" leftIcon={<UserPlus size={16} />} onClick={() => setInvite(true)}>Invite</Button>} />
       {isError ? <ErrorState description="We couldn’t load your housemates." onRetry={refetch} />
         : isPending || summary.isPending || settlement.isPending

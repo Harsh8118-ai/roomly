@@ -33,7 +33,14 @@ export const switchCurrent = asyncHandler(async (req, res) => {
   res.json(publicUser(req.user))
 })
 
-export const getCurrent = (req, res) => res.json(publicHousehold(req.household))
+export const getCurrent = asyncHandler(async (req, res) => {
+  // Upgrade older household invite codes on first access so every active group uses four digits.
+  if (!/^\d{4}$/.test(req.household.inviteCode)) {
+    req.household.inviteCode = await uniqueInviteCode()
+    await req.household.save()
+  }
+  res.json(publicHousehold(req.household))
+})
 
 export const rename = asyncHandler(async (req, res) => {
   req.household.name = req.body.name

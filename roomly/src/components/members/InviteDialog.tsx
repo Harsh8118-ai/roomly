@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-import { Copy, UserPlus } from 'lucide-react'
+import { Copy, Link2, UserPlus } from 'lucide-react'
 import { ResponsiveDialog } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Field'
@@ -34,6 +34,7 @@ export function InviteDialog({ open, onClose }: { open: boolean; onClose: () => 
   })
 
   const copy = async () => { if (household && await copyToClipboard(household.inviteCode)) toast.success('Invite code copied') }
+  const copyLink = async () => { if (household && await copyToClipboard(window.location.origin + '/?join=' + household.inviteCode)) toast.success('Invite link copied') }
 
   return (
     <ResponsiveDialog open={open} onClose={onClose} title="Invite your housemates" description="Add someone to split with, or share your invite code.">
@@ -45,11 +46,12 @@ export function InviteDialog({ open, onClose }: { open: boolean; onClose: () => 
       </form>
       {household && (
         <div className="mt-6 rounded-lg bg-surface-2 p-4">
-          <p className="text-[13px] text-muted">Or share your invite code</p>
+          <p className="text-[13px] text-muted">Share this four-digit code or send the invite link</p>
           <div className="mt-1.5 flex items-center justify-between gap-3">
             <span className="tnum font-mono text-lg font-semibold tracking-wider">{household.inviteCode}</span>
             <Button variant="secondary" size="sm" leftIcon={<Copy size={14} />} onClick={copy}>Copy</Button>
           </div>
+          <Button className="mt-3" fullWidth variant="secondary" size="sm" leftIcon={<Link2 size={14} />} onClick={copyLink}>Copy invite link</Button>
         </div>
       )}
     </ResponsiveDialog>

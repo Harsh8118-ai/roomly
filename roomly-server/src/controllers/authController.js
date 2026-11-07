@@ -1,84 +1,62 @@
-import bcrypt from 'bcryptjs'
+import crypto from 'node:crypto'
 import { User } from '../models/User.js'
 import { ApiError } from '../utils/ApiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { publicUser } from '../utils/serializers.js'
-import { randomToken, sha256, signToken } from '../services/tokenService.js'
+import { signToken } from '../services/tokenService.js'
 import { syncMemberProfile } from '../services/householdService.js'
-import { sendMail } from '../utils/mailer.js'
 import { env } from '../config/env.js'
 
-const COST = env.isTest ? 4 : 12
-// Compared against when the email is unknown, so response time doesn't reveal which emails exist.
-const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', COST)
-
-const session = (user) => ({ token: signToken(user), user: publicUser(user) })
-
-export const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body
-  if (await User.exists({ email })) throw ApiError.conflict('An account with this email already exists.')
-  const user = await User.create({ name, email, passwordHash: await bcrypt.hash(password, COST) })
-  res.status(201).json(session(user))
-})
-
-export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body
-  const user = await User.findOne({ email }).select('+passwordHash')
-  const ok = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH)
-  if (!user || !ok) throw ApiError.unauthorized('That email and password don’t match.')
-  res.json(session(user))
-})
-
-// Tokens are stateless, so the client simply discards its token. Present for API symmetry.
-export const logout = (_req, res) => res.json({ ok: true })
-
-export const me = (req, res) => res.json(publicUser(req.user))
-
-export const updateMe = asyncHandler(async (req, res) => {
-  const { name, email, tone } = req.body
-  const user = req.user
-  if (email && email !== user.email) {
-    if (await User.exists({ email, _id: { $ne: user._id } })) throw ApiError.conflict('An account with this email already exists.')
-    user.email = email
+export const googleStart = (req, res) => {
+  if (!env.google.clientId || !env.google.clientSecret || !env.google.redirectUri) {
+    return res.status(503).json({ message: 'Google sign-in is not configured. Add the Google OAuth environment variables to the API.' })
   }
-  if (name) user.name = name
-  await user.save()
-  await syncMemberProfile(user._id, { name, email, tone })
-  res.json(publicUser(user))
-})
+  const state = crypto.randomBytes(24).toString('hex')
+  const requestedNext = typeof req.query.next === 'string' ? req.query.next : '/'
+  const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/'
+  const stateCookie = Buffer.from(JSON.stringify({ state, next })).toString('base64url')
+  res.cookie('roomly_oauth_state', stateCookie, { httpOnly: true, secure: env.isProd, sameSite: 'lax', maxAge: 10 * 60 * 1000, path: '/api/auth' })
+  const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+  url.search = new URLSearchParams({ client_id: env.google.clientId, redirect_uri: env.google.redirectUri, response_type: 'code', scope: 'openid email profile', state, prompt: 'select_account' }).toString()
+  res.redirect(url.toString())
+}
 
-export const changePassword = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id).select('+passwordHash')
-  if (!(await bcrypt.compare(req.body.currentPassword, user.passwordHash))) throw ApiError.invalid('Your current password is incorrect.')
-  user.passwordHash = await bcrypt.hash(req.body.newPassword, COST)
-  user.tokenVersion += 1 // signs out every other device
-  await user.save()
-  res.json({ ok: true, token: signToken(user) })
-})
-
-/** Always answers "ok" so it can't be used to discover which emails have accounts. */
-export const forgotPassword = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email })
+export const googleCallback = asyncHandler(async (req, res) => {
+  const cookieHeader = req.headers.cookie ?? ''
+  const rawCookie = cookieHeader.split(';').map((part) => part.trim()).find((part) => part.startsWith('roomly_oauth_state='))?.slice('roomly_oauth_state='.length)
+  let saved
+  try { saved = JSON.parse(Buffer.from(decodeURIComponent(rawCookie ?? ''), 'base64url').toString()) } catch { throw ApiError.unauthorized('Google sign-in expired. Please try again.') }
+  if (!req.query.state || req.query.state !== saved.state || !req.query.code) throw ApiError.unauthorized('Google sign-in could not be verified.')
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ code: String(req.query.code), client_id: env.google.clientId, client_secret: env.google.clientSecret, redirect_uri: env.google.redirectUri, grant_type: 'authorization_code' }),
+  })
+  if (!tokenResponse.ok) throw ApiError.unauthorized('Google could not complete sign-in.')
+  const tokens = await tokenResponse.json()
+  const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${tokens.access_token}` } })
+  if (!profileResponse.ok) throw ApiError.unauthorized('Could not read your Google profile.')
+  const profile = await profileResponse.json()
+  if (!profile.email || !profile.email_verified || !profile.sub) throw ApiError.unauthorized('Use a verified Google account.')
+  let user = await User.findOne({ $or: [{ googleId: profile.sub }, { email: String(profile.email).toLowerCase() }] })
   if (user) {
-    const token = randomToken(32)
-    user.resetTokenHash = sha256(token)
-    user.resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000)
+    if (!user.googleId) user.googleId = profile.sub
+    if (profile.name) user.name = profile.name
+    if (profile.picture) user.avatarUrl = profile.picture
     await user.save()
-    await sendMail({
-      to: user.email, subject: 'Reset your Roomly password',
-      text: `Hi ${user.name.split(' ')[0]},\n\nUse this link to choose a new password (valid for 1 hour):\n${env.CLIENT_URL}/reset-password?token=${token}\n\nIf you didn't ask for this, you can ignore this email.`,
-    }).catch((e) => console.error('[mail] failed', e.message))
+  } else {
+    user = await User.create({ googleId: profile.sub, name: profile.name || profile.email.split('@')[0], email: profile.email.toLowerCase(), avatarUrl: profile.picture })
   }
-  res.json({ ok: true })
+  res.setHeader('Cache-Control', 'no-store')
+  res.clearCookie('roomly_oauth_state', { httpOnly: true, secure: env.isProd, sameSite: 'lax', path: '/api/auth' })
+  res.redirect(`${env.CLIENT_URL}/auth/callback?next=${encodeURIComponent(saved.next || '/') }#token=${encodeURIComponent(signToken(user))}`)
 })
 
-export const resetPassword = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ resetTokenHash: sha256(req.body.token), resetTokenExpires: { $gt: new Date() } }).select('+resetTokenHash +resetTokenExpires')
-  if (!user) throw ApiError.invalid('That reset link has expired. Request a new one.')
-  user.passwordHash = await bcrypt.hash(req.body.password, COST)
-  user.resetTokenHash = undefined
-  user.resetTokenExpires = undefined
-  user.tokenVersion += 1
-  await user.save()
-  res.json({ ok: true })
+export const logout = (_req, res) => res.json({ ok: true })
+export const me = (req, res) => res.json(publicUser(req.user))
+export const updateMe = asyncHandler(async (req, res) => {
+  const { name, tone } = req.body
+  if (name) req.user.name = name
+  await req.user.save()
+  await syncMemberProfile(req.user._id, { name, tone })
+  res.json(publicUser(req.user))
 })
