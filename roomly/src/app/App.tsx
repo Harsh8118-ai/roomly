@@ -5,11 +5,11 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { AppShell } from '@/components/layout/AppShell'
 import { FullScreenLoader, ProtectedRoute, PublicOnlyRoute, SessionRoute } from '@/components/layout/RouteGuards'
 import { ROUTES } from '@/constants/routes'
+import { EntryRoute } from './EntryRoute'
 
 const lazyPage = <T extends Record<string, React.ComponentType<any>>>(loader: () => Promise<T>, name: keyof T) =>
   lazy(() => loader().then((m) => ({ default: m[name] })))
 
-const Landing = lazyPage(() => import('@/pages/Landing'), 'LandingPage')
 const Login = lazyPage(() => import('@/pages/Login'), 'LoginPage')
 const Register = lazyPage(() => import('@/pages/Register'), 'RegisterPage')
 const ForgotPassword = lazyPage(() => import('@/pages/ForgotPassword'), 'ForgotPasswordPage')
@@ -33,7 +33,7 @@ export function App() {
         <Providers>
           <Suspense fallback={<FullScreenLoader />}>
             <Routes>
-              <Route path={ROUTES.landing} element={<Landing />} />
+              <Route path={ROUTES.landing} element={<EntryRoute />} />
 
               <Route element={<PublicOnlyRoute />}>
                 <Route path={ROUTES.login} element={<Login />} />
