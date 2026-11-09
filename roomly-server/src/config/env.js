@@ -18,7 +18,7 @@ const schema = z.object({
   MAIL_FROM: z.string().default('Roomly <no-reply@roomly.app>'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_REDIRECT_URI: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional().refine((value) => !value || new URL(value).pathname === '/api/auth/google/callback', 'GOOGLE_REDIRECT_URI path must be /api/auth/google/callback'),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_APP_SECRET: z.string().optional(),

@@ -1,4 +1,7 @@
-const apiUrl = ((import.meta as any).env?.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+const configuredApiUrl = ((import.meta as any).env?.VITE_API_URL as string | undefined)?.trim() ?? ''
+// Accept either http://localhost:5000 or http://localhost:5000/api, but store exactly one /api suffix.
+const apiOrigin = configuredApiUrl.replace(/\/+$/, '').replace(/\/api$/i, '')
+const apiUrl = apiOrigin ? `${apiOrigin}/api` : ''
 
 export const config = {
   /** Base URL of the Express API. Empty = run against the in-browser mock API. */
