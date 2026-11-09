@@ -16,7 +16,7 @@ export function LoginPage() {
       window.location.assign(safeNext)
       return
     }
-    window.location.assign(`${config.apiUrl}/api/auth/google?next=${encodeURIComponent(safeNext)}`)
+    window.location.assign(`${config.apiUrl}/auth/google?next=${encodeURIComponent(safeNext)}`)
   }
   return <AuthLayout title="Welcome to Roomly" subtitle="Sign in securely with your Google account.">
     <Button fullWidth size="lg" variant="secondary" onClick={startGoogle}><span className="mr-2 text-base font-semibold">G</span> Continue with Google</Button>
