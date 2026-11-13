@@ -55,7 +55,6 @@ export function ExpenseComposer() {
   const paidBy = watch('paidBy')
   const title = watch('title')
   const splitType = watch('splitType')
-  const splits = watch('splits')
   const payer = members.find((m) => m.id === paidBy)
 
   // Smart assist: guess the category from the title until the user picks one themselves.
@@ -178,7 +177,7 @@ export function ExpenseComposer() {
                     <div className="space-y-2">
                       {members.map((member, index) => <label key={member.id} className="flex items-center justify-between gap-3 text-sm">
                         <span>{member.name}</span>
-                        <span className="flex items-center gap-1"><span className="text-muted">₹</span><input type="number" min="0" step="1" className="h-9 w-28 rounded-md border border-line bg-surface px-2 text-right tnum" {...register('splits.' + index + '.amount', { valueAsNumber: true })} /></span>
+                        <span className="flex items-center gap-1"><span className="text-muted">₹</span><input type="number" min="0" step="1" className="h-9 w-28 rounded-md border border-line bg-surface px-2 text-right tnum" {...register(('splits.' + index + '.amount') as `splits.${number}.amount`, { valueAsNumber: true })} /></span>
                       </label>)}
                     </div>
                     {errors.splits?.message && <p role="alert" className="mt-2 text-xs text-danger">{errors.splits.message}</p>}
