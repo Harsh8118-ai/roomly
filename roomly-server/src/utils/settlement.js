@@ -14,10 +14,22 @@ export function splitEvenly(total, n) {
 /** Paid vs. fair share per member. Balances always sum to zero. */
 export function computeBalances(expenses, memberIds) {
   const total = expenses.reduce((s, e) => s + e.amount, 0)
-  const shares = splitEvenly(total, memberIds.length)
-  const members = memberIds.map((memberId, i) => {
+  const shareByMember = new Map(memberIds.map((id) => [id, 0]))
+  for (const expense of expenses) {
+    if (expense.splitType === 'custom' && Array.isArray(expense.splits) && expense.splits.length) {
+      for (const split of expense.splits) {
+        const id = String(split.memberId)
+        shareByMember.set(id, (shareByMember.get(id) ?? 0) + split.amount)
+      }
+    } else {
+      const shares = splitEvenly(expense.amount, memberIds.length)
+      memberIds.forEach((id, i) => shareByMember.set(id, (shareByMember.get(id) ?? 0) + shares[i]))
+    }
+  }
+  const members = memberIds.map((memberId) => {
     const paid = expenses.filter((e) => String(e.paidBy) === memberId).reduce((s, e) => s + e.amount, 0)
-    return { memberId, paid, share: shares[i], balance: paid - shares[i] }
+    const share = shareByMember.get(memberId) ?? 0
+    return { memberId, paid, share, balance: paid - share }
   })
   return { total, fairShare: memberIds.length ? Math.round(total / memberIds.length) : 0, members }
 }
