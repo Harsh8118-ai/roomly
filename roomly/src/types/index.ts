@@ -51,6 +51,8 @@ export interface Expense {
   category: CategoryId
   paidBy: string
   date: ISODate
+  splitType?: 'equal' | 'custom'
+  splits?: { memberId: string; amount: number }[]
   note?: string
   receiptUrl?: string
   /** Where it was recorded: the app, or a WhatsApp message. */
@@ -59,7 +61,7 @@ export interface Expense {
   updatedAt: string
 }
 
-export type ExpenseInput = Pick<Expense, 'title' | 'amount' | 'category' | 'paidBy' | 'date'> & {
+export type ExpenseInput = Pick<Expense, 'title' | 'amount' | 'category' | 'paidBy' | 'date'> & { splitType?: 'equal' | 'custom'; splits?: { memberId: string; amount: number }[];
   note?: string
   receiptUrl?: string
 }
