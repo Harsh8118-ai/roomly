@@ -21,7 +21,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   if (typeof content !== 'string' || !content.trim()) throw ApiError.invalid('Upload a non-empty WhatsApp .txt or .md chat export.')
   if (typeof filename !== 'string') throw ApiError.invalid('Choose a valid .txt or .md filename.')
   if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
-  if (!/\.txt$/i.test(filename)) throw ApiError.invalid('Please upload a WhatsApp .txt export.')
+  if (!/\.(txt|md)$/i.test(filename)) throw ApiError.invalid('Please upload a WhatsApp .txt or .md export.')
 
   const batch = await ChatImport.create({
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
