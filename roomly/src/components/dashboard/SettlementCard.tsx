@@ -7,10 +7,10 @@ import { useMembers } from '@/hooks/queries'
 import { formatINR } from '@/utils/format'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
-import type { Settlement } from '@/types'
+import type { MonthKey, Settlement } from '@/types'
 
 /** The most important card: your standing, and exactly why. */
-export function SettlementCard({ settlement, userId, loading }: { settlement?: Settlement; userId: string; loading?: boolean }) {
+export function SettlementCard({ settlement, userId, month, loading }: { settlement?: Settlement; userId: string; month: MonthKey; loading?: boolean }) {
   const { byId } = useMembers()
 
   if (loading || !settlement) {
@@ -54,7 +54,7 @@ export function SettlementCard({ settlement, userId, loading }: { settlement?: S
         })}
         {state !== 'settled' && myTx.length === 0 && <li className="text-muted">Waiting on payments between other housemates.</li>}
       </ul>
-      <Link to={ROUTES.settlement} className="mt-6 block">
+      <Link to={`${ROUTES.settlement}?month=${month}`} className="mt-6 block">
         <Button variant={state === 'settled' ? 'secondary' : 'dark'} fullWidth rightIcon={<ArrowRight size={16} />} tabIndex={-1}>View settlement</Button>
       </Link>
     </div>
