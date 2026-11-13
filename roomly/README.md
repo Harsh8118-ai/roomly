@@ -44,11 +44,13 @@ UI component → hook (TanStack Query) → service → api client → REST
 - 401 from any request clears the session and routes to login. Errors are mapped to friendly copy in `utils/errors.ts`.
 - All colours live in `src/styles/index.css` as CSS variables (light + dark), consumed through `tailwind.config.js`.
 
-## WhatsApp (log expenses by texting)
+## WhatsApp chat import
 
-Settings → **WhatsApp** lets each housemate link their number with a one-time code (QR included), then text `vegetables 150rs` to the Roomly bot — or to a household group Roomly creates. New expenses appear on every open screen instantly (live updates) with a "via WhatsApp" marker. The **Try it** box shows exactly how Roomly reads a message, using the same parser as the server.
+The household admin can open **Import chat** in the sidebar and upload a WhatsApp `.txt` export (Export chat → Without media). Roomly fingerprints messages per household, skips previously imported messages, detects expense candidates, maps senders to members, and queues candidates for admin approval before creating expenses. Import review history is retained so a full export can safely be uploaded again later.
 
-In demo mode all of this works offline: three housemates are pre-linked, and a "Development only" box lets you send messages as any of them. With the real server, set `VITE_API_URL` and follow the server README → *WhatsApp setup*.
+**Share dashboard** creates a revocable, expiring, read-only link. Admins can optionally include member contribution totals and share the link directly to WhatsApp.
+
+The old WhatsApp Cloud API bot implementation remains in the backend for compatibility, but it is no longer part of the primary frontend workflow.
 
 ## Keyboard
 
