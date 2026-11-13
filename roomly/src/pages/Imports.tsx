@@ -105,7 +105,7 @@ export function ImportsPage() {
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-strong"><FileUp size={20} /></div>
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold">Upload WhatsApp export</h2>
-            <p className="mt-1 text-sm text-muted">Upload a .txt or .md export, or a .zip containing one. Roomly automatically creates expenses and assigns each payer using the WhatsApp sender name. No approval or editing step.</p>
+            <p className="mt-1 text-sm text-muted">Upload a .txt or .md export, or a .zip containing one. Roomly automatically creates expenses and assigns each payer using the WhatsApp sender name. New sender names are added as household members when needed. No approval or editing step.</p>
             <label className="mt-4 inline-flex cursor-pointer">
               <input type="file" accept=".txt,.md,.zip,text/plain,text/markdown,application/zip" className="sr-only" disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = '' }} />
               <span className="inline-flex h-10 items-center gap-2 rounded-md bg-accent-strong px-4 text-sm font-semibold text-on-accent">{busy ? <RefreshCw size={16} className="animate-spin" /> : <FileArchive size={16} />}{busy ? 'Importing…' : 'Choose chat file'}</span>
