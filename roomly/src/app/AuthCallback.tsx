@@ -6,6 +6,7 @@ import { authService } from '@/services/authService'
 import { tokenStore } from '@/services/api/client'
 import { ME_KEY } from '@/store/AuthProvider'
 import { ROUTES } from '@/constants/routes'
+import type { User } from '@/types'
 
 export function AuthCallback() {
   const navigate = useNavigate()
@@ -15,12 +16,14 @@ export function AuthCallback() {
   const [failureMessage, setFailureMessage] = useState('Sign-in could not be completed.')
   // Keep the fragment token across React StrictMode's development effect replay.
   const tokenRef = useRef<string | null>(new URLSearchParams(window.location.hash.slice(1)).get('token'))
+  const userRequestRef = useRef<Promise<User> | null>(null)
   useEffect(() => {
     let active = true
     const token = tokenRef.current
     if (!token) { setFailed(true); return }
     tokenStore.set(token)
-    authService.getCurrentUser().then((user) => {
+    userRequestRef.current ??= authService.getCurrentUser()
+    userRequestRef.current.then((user) => {
       if (!active) return
       window.history.replaceState({}, document.title, window.location.pathname + window.location.search)
       tokenRef.current = null
