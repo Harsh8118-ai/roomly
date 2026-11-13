@@ -16,6 +16,7 @@ const ExpenseDetails = lazyPage(() => import('@/pages/ExpenseDetails'), 'Expense
 const Settlement = lazyPage(() => import('@/pages/Settlement'), 'SettlementPage')
 const Members = lazyPage(() => import('@/pages/Members'), 'MembersPage')
 const Settings = lazyPage(() => import('@/pages/Settings'), 'SettingsPage')
+const Imports = lazyPage(() => import('@/pages/Imports'), 'ImportsPage')
 const NotFound = lazyPage(() => import('@/pages/NotFound'), 'NotFoundPage')
 export function App() {
   return <ErrorBoundary><BrowserRouter><Providers><Suspense fallback={<FullScreenLoader />}>
@@ -32,6 +33,7 @@ export function App() {
         <Route path="settlement" element={<Settlement />} />
         <Route path="members" element={<Members />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="imports" element={<Imports />} />
       </Route></Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
