@@ -57,7 +57,7 @@ export function MonthlyReportPage({ wrapped = false }: { wrapped?: boolean }) {
               <tbody className="divide-y divide-line">
                 {st.members.map((m) => (
                   <tr key={m.memberId}>
-                    <td className="px-5 py-3"><span className="flex items-center gap-2.5"><Avatar person={byId(m.memberId)} size="sm" /><Link to={ROUTES.member(m.memberId)} className="font-medium hover:underline">{byId(m.memberId).name.split(' ')[0]}</Link></span></td>
+                    <td className="px-5 py-3"><span className="flex items-center gap-2.5"><Avatar person={byId(m.memberId)} size="sm" /><Link to={`${ROUTES.member(m.memberId)}?month=${month}`} className="font-medium hover:underline">{byId(m.memberId).name.split(' ')[0]}</Link></span></td>
                     <td className="tnum px-2 py-3 text-right">{formatINR(m.paid)}</td>
                     <td className="tnum px-2 py-3 text-right text-muted">{formatINR(m.share)}</td>
                     <td className="px-5 py-3 text-right font-semibold"><Money value={m.balance} signed /></td>
