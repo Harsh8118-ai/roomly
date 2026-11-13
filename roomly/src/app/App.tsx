@@ -15,6 +15,9 @@ const Expenses = lazyPage(() => import('@/pages/Expenses'), 'ExpensesPage')
 const ExpenseDetails = lazyPage(() => import('@/pages/ExpenseDetails'), 'ExpenseDetailsPage')
 const Settlement = lazyPage(() => import('@/pages/Settlement'), 'SettlementPage')
 const Members = lazyPage(() => import('@/pages/Members'), 'MembersPage')
+const MemberDetail = lazyPage(() => import('@/pages/MemberDetail'), 'MemberDetailPage')
+const History = lazyPage(() => import('@/pages/History'), 'HistoryPage')
+const MonthlyReport = lazyPage(() => import('@/pages/MonthlyReport'), 'MonthlyReportPage')
 const Settings = lazyPage(() => import('@/pages/Settings'), 'SettingsPage')
 const Imports = lazyPage(() => import('@/pages/Imports'), 'ImportsPage')
 const Sharing = lazyPage(() => import('@/pages/Sharing'), 'SharingPage')
@@ -35,6 +38,10 @@ export function App() {
         <Route path="expenses/:id" element={<ExpenseDetails />} />
         <Route path="settlement" element={<Settlement />} />
         <Route path="members" element={<Members />} />
+        <Route path="members/:id" element={<MemberDetail />} />
+        <Route path="history" element={<History />} />
+        <Route path="history/:month" element={<MonthlyReport />} />
+        <Route path="wrapped/:month" element={<MonthlyReport wrapped />} />
         <Route path="settings" element={<Settings />} />
         <Route path="imports" element={<Imports />} />
         <Route path="sharing" element={<Sharing />} />
