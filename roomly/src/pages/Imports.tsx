@@ -11,7 +11,6 @@ type ImportStats = { total: number; newMessages: number; duplicates: number; can
 type ImportRecord = { id: string; filename: string; status: 'review' | 'completed'; stats: ImportStats; createdAt: string }
 type ImportResponse = {
   import: { id: string; filename: string; stats: ImportStats }
-  messages: unknown[]
 }
 
 async function readZipChat(file: File): Promise<{ filename: string; content: string }> {
