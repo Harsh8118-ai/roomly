@@ -81,6 +81,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     const isExpense = item.parsed.kind === 'expense'
     const member = isExpense ? resolveSenderMember(req.household, item.sender, req.member) : null
     if (member && !req.household.isModified('members')) householdChanged = true
+    if (req.household.isModified('members')) await req.household.save()
     const senderMemberId = member?._id ?? null
     let status = isExpense ? (senderMemberId ? 'approved' : 'pending') : 'ignored'
     const doc = {
@@ -115,6 +116,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
         throw expenseError
       })
       if (recovered.expense) {
+        duplicates--
         imported++
         await ChatImport.updateOne({ _id: message.importId }, { $inc: { 'stats.approved': 1, 'stats.unmatched': -1 } })
       } else if (recovered.invalid) {
