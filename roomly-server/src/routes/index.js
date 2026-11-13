@@ -12,6 +12,7 @@ import * as notifications from '../controllers/notificationController.js'
 import { uploadReceipt } from '../controllers/uploadController.js'
 import * as whatsapp from '../controllers/whatsappController.js'
 import * as imports from '../controllers/importController.js'
+import * as shares from '../controllers/shareController.js'
 import { stream } from '../controllers/eventsController.js'
 
 const router = Router()
@@ -31,6 +32,8 @@ router.get('/households', authenticate, households.list)
 router.post('/households', authenticate, validate({ body: v.householdNameBody }), households.create)
 router.post('/households/join', authenticate, joinLimiter, validate({ body: v.joinBody }), households.join)
 router.put('/households/current', authenticate, validate({ body: v.switchBody }), households.switchCurrent)
+
+router.get('/public/shares/:token', shares.publicDashboard)
 
 const inHousehold = [authenticate, requireHousehold]
 router.get('/households/current', ...inHousehold, households.getCurrent)
@@ -54,6 +57,10 @@ router.post('/settlements/:month/transactions/:tx/pay', ...inHousehold, validate
 router.delete('/settlements/:month/transactions/:tx/pay', ...inHousehold, validate({ params: v.monthParam }), settlements.markUnpaid)
 router.get('/summaries/:month', ...inHousehold, validate({ params: v.monthParam }), settlements.summary)
 router.get('/months', ...inHousehold, settlements.months)
+
+router.post('/shares', ...inHousehold, requireAdmin, shares.createShare)
+router.get('/shares', ...inHousehold, requireAdmin, shares.listShares)
+router.delete('/shares/:id', ...inHousehold, requireAdmin, shares.revokeShare)
 
 router.post('/imports/whatsapp', ...inHousehold, requireAdmin, imports.uploadWhatsAppExport)
 router.get('/imports', ...inHousehold, imports.listImports)
