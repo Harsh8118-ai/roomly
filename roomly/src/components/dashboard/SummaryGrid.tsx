@@ -28,9 +28,9 @@ export function SummaryGrid({ month, summary, settlement, userId, previousTotal,
       key: 'total', icon: Home, label: 'Household spending', value: summary.total, format: formatINR,
       sub: <>{monthLabel(month, { year: false })} · {summary.expenseCount} expenses
         {trend !== null && <span className="ml-1.5 inline-flex items-center gap-0.5 text-muted">{trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{Math.abs(trend).toFixed(0)}% vs last month</span>}</>,
-      to: ROUTES.expenses, primary: true,
+      to: `${ROUTES.expenses}?month=${month}`, primary: true,
     },
-    { key: 'mine', icon: PiggyBank, label: 'Your contribution', value: mine, format: formatINR, sub: <>{formatPercent(share)} of household</>, to: ROUTES.member(userId) },
+    { key: 'mine', icon: PiggyBank, label: 'Your contribution', value: mine, format: formatINR, sub: <>{formatPercent(share)} of household</>, to: `${ROUTES.member(userId)}?month=${month}` },
     {
       key: 'bal', icon: Scale, label: 'Your balance', value: balance, format: formatSigned, to: ROUTES.settlement, tone: balanceTone(balance),
       sub: balance > 0 ? 'You should receive' : balance < 0 ? 'You owe the household' : <span className="inline-flex items-center gap-1"><Check size={13} />You’re all square</span>,
@@ -72,7 +72,7 @@ export function SummaryGrid({ month, summary, settlement, userId, previousTotal,
         {memberTotals.length ? <div className="space-y-3">
           {memberTotals.map((item) => {
             const percent = summary.total ? (item.total / summary.total) * 100 : 0
-            return <Link key={item.memberId} to={ROUTES.member(item.memberId)} className="block rounded-lg p-2 -mx-2 transition-colors hover:bg-surface-2">
+            return <Link key={item.memberId} to={`${ROUTES.member(item.memberId)}?month=${month}`} className="block rounded-lg p-2 -mx-2 transition-colors hover:bg-surface-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="min-w-0 truncate text-sm font-medium">{item.member.name}{item.memberId === userId ? <span className="ml-2 text-xs text-muted">(You)</span> : null}</span>
                 <span className="shrink-0 text-sm font-semibold tabular-nums">{formatINR(item.total)}</span>
