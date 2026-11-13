@@ -7,3 +7,5 @@ export { WhatsappLink, WhatsappLinkCode, WhatsappGroup, WhatsappMessage } from '
 
 export { ChatImport } from './ChatImport.js'
 export { ImportedMessage } from './ImportedMessage.js'
+
+export { ShareLink } from './ShareLink.js'
