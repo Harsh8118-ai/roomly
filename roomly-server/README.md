@@ -69,6 +69,19 @@ All routes are under `/api`, JSON in/out, `Authorization: Bearer <token>` unless
 - **Permissions.** Any member can add an expense. Edit/delete/restore: the payer, whoever added it, or an admin. Marking a payment: the payer, the receiver, or an admin. Rename, rotate code, remove member: admin.
 - **Dates** (today, month boundaries) use `APP_TIMEZONE` (default `Asia/Kolkata`).
 
+## WhatsApp chat export import (Roomly flow)
+
+The household admin can upload a WhatsApp **Export chat → Without media** `.txt` file from the Roomly **Import chat** page. The import API supports common Android and iOS text-export headers.
+
+- `POST /api/imports/whatsapp` accepts `{ filename, content }`; authenticated household admins only.
+- The parser uses the existing conservative WhatsApp expense parser and keeps only expense-candidate message text for review. Non-expense messages are represented by fingerprints/status only.
+- Message fingerprints are unique per household and include normalized sender, timestamp and message content. Re-uploading the same export skips already-seen messages.
+- `GET /api/imports` lists recent import batches; `GET /api/imports/:id/review` returns pending candidates and household members.
+- `POST /api/imports/:id/review` accepts decisions with `messageId`, `action` (`approve` or `reject`), and for approvals `paidBy`, `amount`, `title`, and `category`.
+- Imported expenses are not added to the ledger until the admin approves them. The import history remains as an audit/deduplication record.
+
+The frontend page is available at `/app/imports`. This first iteration imports text messages only; media/receipt OCR, advanced sender aliases, configurable custom splits, and public dashboard links are separate follow-on work.
+
 ## WhatsApp
 
 Housemates can log expenses by texting — `vegetables 150rs` — through the **official WhatsApp Cloud API**. Two ways, both built:
