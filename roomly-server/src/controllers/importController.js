@@ -3,7 +3,8 @@ import { ChatImport } from '../models/ChatImport.js'
 import { ImportedMessage } from '../models/ImportedMessage.js'
 import { Expense } from '../models/Expense.js'
 import { parseWhatsAppExport } from '../services/whatsapp/exportParser.js'
-import { CATEGORY_IDS } from '../constants.js'
+import { CATEGORY_IDS, MAX_MEMBERS } from '../constants.js'
+import { nextTone } from '../services/householdService.js'
 import { ApiError } from '../utils/ApiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { isMonthClosed } from '../services/settlementService.js'
@@ -18,9 +19,49 @@ const publicMessage = (message) => ({
 
 function normalizeSender(value) {
   return String(value ?? '').normalize('NFKC').toLowerCase()
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
-    .replace(/[^\p{L}\p{N}]+/gu, '')
+    .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')
+    .replace(/[^\\p{L}\\p{N}]+/gu, '')
     .trim()
+}
+
+function senderDisplayName(value) {
+  return String(value ?? '').normalize('NFKC')
+    .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')
+    .replace(/[^\\p{L}\\p{N}\\s'-]/gu, '')
+    .replace(/\\s+/g, ' ').trim().slice(0, 60)
+}
+
+function resolveSenderMember(household, sender, currentMember) {
+  if (/^you$/i.test(String(sender).trim())) return currentMember
+  const key = normalizeSender(sender)
+  if (!key) return null
+  const existing = household.members.find((member) => normalizeSender(member.name) === key)
+  if (existing) return existing
+  const name = senderDisplayName(sender)
+  if (!name || !/\\p{L}/u.test(name) || household.members.length >= MAX_MEMBERS) return null
+  household.members.push({ name, role: 'member', status: 'active', tone: nextTone(household) })
+  return household.members[household.members.length - 1]
+}
+
+async function createImportedExpense({ household, user, message, memberId }) {
+  const amount = Number(message.parsed?.amount)
+  const title = String(message.parsed?.title ?? '').trim()
+  const category = CATEGORY_IDS.includes(message.parsed?.category) ? message.parsed.category : 'other'
+  const sentAt = new Date(message.sentAt)
+  const date = new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
+  if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80) return { invalid: true }
+  if (await isMonthClosed(household, monthOf(date))) return { closed: true }
+  const expense = await Expense.create({
+    householdId: household._id, title, amount, category, paidBy: memberId, date,
+    note: 'Imported from WhatsApp chat', createdBy: user._id, source: 'whatsapp',
+    whatsappMessageId: 'import:' + message._id,
+  })
+  message.status = 'approved'
+  message.senderMemberId = memberId
+  message.expenseId = expense._id
+  await message.save()
+  publish(household._id, { type: 'expense.created', id: String(expense._id), by: String(user._id), source: 'whatsapp', title, amount, category })
+  return { expense }
 }
 
 export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
@@ -34,67 +75,64 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     status: 'completed',
   })
   const parsedMessages = parseWhatsAppExport(content, req.household._id)
-  const memberByName = new Map()
-  for (const member of req.household.members) {
-    const key = normalizeSender(member.name)
-    if (key) memberByName.set(key, member._id)
-  }
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
+  let householdChanged = false
   for (const item of parsedMessages) {
     const isExpense = item.parsed.kind === 'expense'
-    // In WhatsApp exports, "You" means the account that exported the chat.
-    const senderMemberId = /^you$/i.test(item.sender.trim())
-      ? (memberByName.get(normalizeSender(req.user.name)) ?? null)
-      : memberByName.get(normalizeSender(item.sender))
-    let status = 'ignored'
-    if (isExpense && senderMemberId) status = 'approved'
-    else if (isExpense) status = 'pending'
-
+    const member = isExpense ? resolveSenderMember(req.household, item.sender, req.member) : null
+    if (member && !req.household.isModified('members')) householdChanged = true
+    const senderMemberId = member?._id ?? null
+    let status = isExpense ? (senderMemberId ? 'approved' : 'pending') : 'ignored'
     const doc = {
       householdId: req.household._id, importId: batch._id, fingerprint: item.fingerprint,
-      sender: item.sender, senderMemberId: senderMemberId ?? null,
+      sender: item.sender, senderMemberId,
       sentAt: item.sentAt, text: item.text.slice(0, 1000),
       ...(isExpense ? { parsed: item.parsed } : {}),
       status,
     }
+    let message
     try {
-      const message = await ImportedMessage.create(doc)
+      message = await ImportedMessage.create(doc)
       newMessages++
-      if (!isExpense) { ignored++; continue }
-      if (!senderMemberId) { unmatched++; continue }
-
-      const amount = Number(item.parsed.amount)
-      const title = String(item.parsed.title ?? '').trim()
-      const category = CATEGORY_IDS.includes(item.parsed.category) ? item.parsed.category : 'other'
-      const sentAt = new Date(item.sentAt)
-      const date = new Date(sentAt.getTime() + Number(item.parsed.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
-      if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80) {
-        message.status = 'ignored'
-        await message.save()
-        ignored++
-        continue
-      }
-      if (await isMonthClosed(req.household, monthOf(date))) {
-        message.status = 'pending'
-        await message.save()
-        unmatched++
-        continue
-      }
-      const expense = await Expense.create({
-        householdId: req.household._id, title, amount, category, paidBy: senderMemberId, date,
-        note: 'Imported from WhatsApp chat', createdBy: req.user._id, source: 'whatsapp',
-        whatsappMessageId: 'import:' + message._id,
-      })
-      message.status = 'approved'
-      message.expenseId = expense._id
-      await message.save()
-      imported++
-      publish(req.household._id, { type: 'expense.created', id: String(expense._id), by: String(req.user._id), source: 'whatsapp', title, amount, category })
     } catch (error) {
-      if (error?.code === 11000) { duplicates++; continue }
-      throw error
+      if (error?.code !== 11000) throw error
+      duplicates++
+      // A previous import may have stored this as unmatched/pending. Retry it now
+      // that the sender can be mapped to a household member.
+      message = await ImportedMessage.findOne({ householdId: req.household._id, fingerprint: item.fingerprint })
+      if (!message || !isExpense || message.status !== 'pending' || !senderMemberId) continue
+      message.senderMemberId = senderMemberId
+      const recovered = await createImportedExpense({ household: req.household, user: req.user, message, memberId: senderMemberId }).catch(async (expenseError) => {
+        if (expenseError?.code === 11000) {
+          const existingExpense = await Expense.findOne({ whatsappMessageId: 'import:' + message._id })
+          if (existingExpense) {
+            message.status = 'approved'
+            message.expenseId = existingExpense._id
+            await message.save()
+            return { expense: existingExpense }
+          }
+        }
+        throw expenseError
+      })
+      if (recovered.expense) {
+        imported++
+        await ChatImport.updateOne({ _id: message.importId }, { $inc: { 'stats.approved': 1, 'stats.unmatched': -1 } })
+      } else if (recovered.invalid) {
+        message.status = 'ignored'; await message.save(); ignored++
+      } else if (recovered.closed) {
+        unmatched++
+      }
+      continue
     }
+
+    if (!isExpense) { ignored++; continue }
+    if (!senderMemberId) { unmatched++; continue }
+    const created = await createImportedExpense({ household: req.household, user: req.user, message, memberId: senderMemberId })
+    if (created.expense) imported++
+    else if (created.invalid) { message.status = 'ignored'; await message.save(); ignored++ }
+    else if (created.closed) { message.status = 'pending'; await message.save(); unmatched++ }
   }
+  if (householdChanged || req.household.isModified('members')) await req.household.save()
   batch.stats = {
     total: parsedMessages.length, newMessages, duplicates,
     candidates: parsedMessages.filter((item) => item.parsed.kind === 'expense').length,
