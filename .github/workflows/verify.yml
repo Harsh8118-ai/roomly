@@ -34,5 +34,7 @@ jobs:
           cache-dependency-path: roomly-server/package-lock.json
       - run: npm ci
         working-directory: roomly-server
+      - run: npm test
+        working-directory: roomly-server
       - name: Check JavaScript syntax
         run: find roomly-server/src -name '*.js' -print0 | xargs -0 -n1 node --check
