@@ -44,7 +44,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     const isExpense = item.parsed.kind === 'expense'
     // In WhatsApp exports, "You" means the account that exported the chat.
     const senderMemberId = /^you$/i.test(item.sender.trim())
-      ? req.user._id
+      ? (memberByName.get(normalizeSender(req.user.name)) ?? null)
       : memberByName.get(normalizeSender(item.sender))
     let status = 'ignored'
     if (isExpense && senderMemberId) status = 'approved'
