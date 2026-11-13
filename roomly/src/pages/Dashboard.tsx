@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { SummaryGrid } from '@/components/dashboard/SummaryGrid'
 import { MonthSelector } from '@/components/common/MonthSelector'
 import { RecentExpenses } from '@/components/dashboard/RecentExpenses'
@@ -11,7 +11,9 @@ import { currentMonth, shiftMonth } from '@/utils/date'
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const [month, setMonth] = useState(currentMonth())
+  const [params, setParams] = useSearchParams()
+  const month = params.get('month') ?? currentMonth()
+  const setMonth = (value: string) => setParams((prev) => { const next = new URLSearchParams(prev); if (value === currentMonth()) next.delete('month'); else next.set('month', value); return next }, { replace: true })
   const summary = useSummary(month)
   const previous = useSummary(shiftMonth(month, -1))
   const settlement = useSettlement(month)
