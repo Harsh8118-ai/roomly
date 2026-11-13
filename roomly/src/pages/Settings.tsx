@@ -7,7 +7,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Bug, Copy, LogOut, Monitor, Moon, RotateCcw, Sun, UserPlus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { SettingsSection } from '@/components/common/SettingsSection'
-import { WhatsAppSection } from '@/components/whatsapp/WhatsAppSection'
 import { InviteDialog } from '@/components/members/InviteDialog'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
@@ -30,7 +29,7 @@ import { friendlyError } from '@/utils/errors'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 
-const SECTIONS = [['profile', 'Profile'], ['household', 'Household'], ['whatsapp', 'WhatsApp'], ['appearance', 'Appearance'], ['notifications', 'Notifications'], ['security', 'Security']]
+const SECTIONS = [['profile', 'Profile'], ['household', 'Household'], ['appearance', 'Appearance'], ['notifications', 'Notifications'], ['security', 'Security']]
 const THEME_OPTIONS: { value: ThemePref; label: string; icon: typeof Sun }[] = [
   { value: 'light', label: 'Light', icon: Sun }, { value: 'dark', label: 'Dark', icon: Moon }, { value: 'system', label: 'System', icon: Monitor },
 ]
@@ -199,7 +198,6 @@ export function SettingsPage() {
         <div className="max-w-2xl space-y-8">
           <ProfileSection />
           <HouseholdSection />
-          <WhatsAppSection />
           <SettingsSection id="appearance" title="Appearance" description="Roomly follows your device by default.">
             <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Theme">
               {THEME_OPTIONS.map((t) => (
