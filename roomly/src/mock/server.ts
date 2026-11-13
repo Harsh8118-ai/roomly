@@ -62,6 +62,7 @@ function validateExpense(h: Household, body: Partial<ExpenseInput>): ExpenseInpu
   return {
     title: body.title.trim(), amount: Math.round(Number(body.amount)), category: body.category as CategoryId,
     paidBy: body.paidBy!, date: body.date, note: body.note?.trim() || undefined, receiptUrl: body.receiptUrl || undefined,
+    splitType, splits: splitType === 'custom' ? splits : [],
   }
 }
 
