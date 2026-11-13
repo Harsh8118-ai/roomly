@@ -19,7 +19,7 @@ export function RecentExpenses({ userId, month }: { userId: string; month: Month
 
   return (
     <section aria-labelledby="recent-h">
-      <CardHeader className="mb-3 px-1" title={`Recent expenses · ${monthLabel(month)}`} action={<Link to={ROUTES.expenses} className="text-[13px] font-medium text-accent-strong hover:underline">View all expenses</Link>} />
+      <CardHeader className="mb-3 px-1" title={`Recent expenses · ${monthLabel(month)}`} action={<Link to={`${ROUTES.expenses}?month=${month}`} className="text-[13px] font-medium text-accent-strong hover:underline">View all expenses</Link>} />
       <span id="recent-h" className="sr-only">Recent expenses</span>
       {isError ? <ErrorState title="Something went wrong." description="We couldn’t load your household expenses." onRetry={refetch} />
         : isPending ? <SkeletonList rows={5} />
