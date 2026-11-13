@@ -8,12 +8,12 @@ import { ROUTES } from '@/constants/routes'
 import { formatINR, pluralize } from '@/utils/format'
 import type { Member } from '@/types'
 
-interface Props { member: Member; contribution: number; count: number; balance: number; isMe?: boolean; index?: number }
+interface Props { member: Member; contribution: number; count: number; balance: number; month?: string; isMe?: boolean; index?: number }
 
-export function MemberCard({ member, contribution, count, balance, isMe, index = 0 }: Props) {
+export function MemberCard({ member, contribution, count, balance, month, isMe, index = 0 }: Props) {
   return (
     <motion.li initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-      <Link to={ROUTES.member(member.id)} className="card card-hover block p-5">
+      <Link to={month ? `${ROUTES.member(member.id)}?month=${month}` : ROUTES.member(member.id)} className="card card-hover block p-5">
         <div className="flex items-start gap-4">
           <Avatar person={member} size="lg" />
           <div className="min-w-0 flex-1">
