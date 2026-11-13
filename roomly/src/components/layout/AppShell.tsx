@@ -1,18 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from '@/components/navigation/Sidebar'
 import { Header } from '@/components/navigation/Header'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { CommandMenu } from '@/components/navigation/CommandMenu'
 import { ExpenseComposer } from '@/components/expenses/ExpenseComposer'
-import { useComposer } from '@/store/ComposerProvider'
 import { useHotkey } from '@/hooks/useHotkeys'
 import { useLiveUpdates } from '@/hooks/useLiveUpdates'
 import { PageTransition } from './PageTransition'
 
 export function AppShell() {
   const [cmdOpen, setCmdOpen] = useState(false)
-  const { openNew } = useComposer()
   const { pathname } = useLocation()
   useLiveUpdates()
 
@@ -24,7 +22,6 @@ export function AppShell() {
     window.addEventListener('keydown', on)
     return () => window.removeEventListener('keydown', on)
   }, [])
-  useHotkey('n', useCallback((e) => { e.preventDefault(); openNew() }, [openNew]))
 
   return (
     <div className="flex min-h-dvh">
