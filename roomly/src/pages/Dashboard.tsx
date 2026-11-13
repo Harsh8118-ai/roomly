@@ -28,7 +28,7 @@ export function DashboardPage() {
       <SummaryGrid month={month} summary={summary.data} settlement={settlement.data} userId={user.id} previousTotal={previous.data?.total} loading={loading} />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)] md:gap-6">
         <RecentExpenses userId={user.id} month={month} />
-        <SettlementCard settlement={settlement.data} userId={user.id} loading={loading} />
+        <SettlementCard settlement={settlement.data} userId={user.id} month={month} loading={loading} />
       </div>
     </div>
   )
