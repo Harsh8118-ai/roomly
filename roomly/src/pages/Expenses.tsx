@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, Receipt, Search, SearchX, SlidersHorizontal, X } from 'lucide-react'
+import { Receipt, Search, SearchX, SlidersHorizontal, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { MonthSelector } from '@/components/common/MonthSelector'
 import { ExpenseList } from '@/components/expenses/ExpenseList'
@@ -13,7 +13,6 @@ import { Money } from '@/components/ui/Money'
 import { CATEGORY_MAP } from '@/constants/categories'
 import { useExpenses, useMembers } from '@/hooks/queries'
 import { useHotkey } from '@/hooks/useHotkeys'
-import { useComposer } from '@/store/ComposerProvider'
 import { currentMonth, formatDate, monthLabel } from '@/utils/date'
 import { pluralize, sum } from '@/utils/format'
 import type { CategoryId } from '@/types'
@@ -21,7 +20,6 @@ import type { CategoryId } from '@/types'
 export function ExpensesPage() {
   const [params, setParams] = useSearchParams()
   const { byId } = useMembers()
-  const { openNew } = useComposer()
   const searchRef = useRef<HTMLInputElement>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
@@ -81,7 +79,6 @@ export function ExpensesPage() {
         description={hasRange ? 'Custom date range' : monthLabel(month)}
         actions={<>
           {!hasRange && <MonthSelector month={month} onChange={(m) => patch({ month: m === currentMonth() ? null : m })} />}
-          <Button className="hidden md:inline-flex" leftIcon={<Plus size={16} />} onClick={openNew}>Add expense</Button>
         </>}
       />
 
@@ -124,8 +121,8 @@ export function ExpensesPage() {
             {filtered ? (
               <EmptyState icon={SearchX} title="Nothing matches." description="Try a different search, or clear your filters to see everything." action={<Button variant="secondary" onClick={clearAll}>Clear all filters</Button>} />
             ) : (
-              <EmptyState icon={Receipt} title="No expenses yet." description={month === currentMonth() ? 'Your household hasn’t recorded any expenses this month. Add your first expense to get started.' : `Nothing was recorded in ${monthLabel(month)}.`}
-                action={month === currentMonth() ? <Button leftIcon={<Plus size={16} />} onClick={openNew}>Add expense</Button> : undefined} />
+              <EmptyState icon={Receipt} title="No expenses yet." description={month === currentMonth() ? 'Your household hasn’t recorded any expenses this month. Import a WhatsApp chat to get started.' : `Nothing was recorded in ${monthLabel(month)}.`}
+                action={month === currentMonth() ? <Button onClick={() => window.location.assign('/app/imports')}>Import WhatsApp chat</Button> : undefined} />
             )}
           </div>
         ) : (
