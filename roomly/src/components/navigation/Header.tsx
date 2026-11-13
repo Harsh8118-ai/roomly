@@ -21,10 +21,11 @@ export function Header({ onOpenCommand }: { onOpenCommand: () => void }) {
   const { user } = useAuth()
   const { data: household } = useHousehold()
   const { openNew } = useComposer()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const selectedMonth = new URLSearchParams(search).get('month') ?? currentMonth()
   const isHome = pathname === ROUTES.dashboard
   const title = TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? ''
-  const context = `${household?.name ?? ''} · ${monthLabel(currentMonth())}`
+  const context = `${household?.name ?? ''} · ${monthLabel(selectedMonth)}`
   const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)
 
   return (
@@ -40,7 +41,7 @@ export function Header({ onOpenCommand }: { onOpenCommand: () => void }) {
           {/* Desktop: household · month */}
           <div className="hidden items-baseline gap-2 md:flex">
             <span className="text-[15px] font-semibold">{household?.name}</span>
-            <span className="text-sm text-muted">{monthLabel(currentMonth())}</span>
+            <span className="text-sm text-muted">{monthLabel(selectedMonth)}</span>
           </div>
         </div>
 
