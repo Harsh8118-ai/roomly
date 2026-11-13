@@ -61,7 +61,16 @@ const COMMANDS = [
  *   | {kind:'ignore',reason:string}}
  */
 export function parseMessage(input) {
-  const raw = String(input ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/(?<=\d)\s*[-–—]\s*(?=[\p{L}])/gu, ' ').replace(/\s+/g, ' ').trim()
+  const raw = String(input ?? '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    // Accept "Veg--120", "Besan-30" and "533-Bazar".
+    .replace(/([\p{L}][\p{L}\p{M}]*)\s*[-–—]{1,}\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)(?=$|[^\p{L}\p{N}])/gu, '$2 $1')
+    .replace(/(?<=\d)\s*[-–—]\s*(?=[\p{L}])/gu, ' ')
+    // Accept compact "Oil175" and punctuation "65.pani".
+    .replace(/([\p{L}][\p{L}\p{M}]*)(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)(?=$|[^\p{L}\p{N}])/gu, '$2 $1')
+    .replace(/(\d)[.,](?=[\p{L}])/gu, '$1 ')
+    .replace(/\s*<This message was edited>\s*/gi, ' ')
+    .replace(/\s+/g, ' ').trim()
   if (!raw) return { kind: 'ignore', reason: 'empty' }
   if (raw.length > MAX_LENGTH) return { kind: 'ignore', reason: 'too-long' }
 
