@@ -15,6 +15,7 @@ export function splitEvenly(total, n) {
 export function computeBalances(expenses, memberIds) {
   const total = expenses.reduce((s, e) => s + e.amount, 0)
   const shareByMember = new Map(memberIds.map((id) => [id, 0]))
+  let equalSplitTotal = 0
   for (const expense of expenses) {
     if (expense.splitType === 'custom' && Array.isArray(expense.splits) && expense.splits.length) {
       for (const split of expense.splits) {
@@ -22,10 +23,11 @@ export function computeBalances(expenses, memberIds) {
         shareByMember.set(id, (shareByMember.get(id) ?? 0) + split.amount)
       }
     } else {
-      const shares = splitEvenly(expense.amount, memberIds.length)
-      memberIds.forEach((id, i) => shareByMember.set(id, (shareByMember.get(id) ?? 0) + shares[i]))
+      equalSplitTotal += expense.amount
     }
   }
+  const equalShares = splitEvenly(equalSplitTotal, memberIds.length)
+  memberIds.forEach((id, i) => shareByMember.set(id, (shareByMember.get(id) ?? 0) + equalShares[i]))
   const members = memberIds.map((memberId) => {
     const paid = expenses.filter((e) => String(e.paidBy) === memberId).reduce((s, e) => s + e.amount, 0)
     const share = shareByMember.get(memberId) ?? 0
