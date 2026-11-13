@@ -17,6 +17,8 @@ const Settlement = lazyPage(() => import('@/pages/Settlement'), 'SettlementPage'
 const Members = lazyPage(() => import('@/pages/Members'), 'MembersPage')
 const Settings = lazyPage(() => import('@/pages/Settings'), 'SettingsPage')
 const Imports = lazyPage(() => import('@/pages/Imports'), 'ImportsPage')
+const Sharing = lazyPage(() => import('@/pages/Sharing'), 'SharingPage')
+const PublicDashboard = lazyPage(() => import('@/pages/PublicDashboard'), 'PublicDashboardPage')
 const NotFound = lazyPage(() => import('@/pages/NotFound'), 'NotFoundPage')
 export function App() {
   return <ErrorBoundary><BrowserRouter><Providers><Suspense fallback={<FullScreenLoader />}>
@@ -24,6 +26,7 @@ export function App() {
       <Route path="/" element={<EntryRoute />} />
       <Route path="/login" element={<PublicOnlyRoute />}><Route index element={<Login />} /></Route>
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/share/:token" element={<PublicDashboard />} />
       <Route element={<SessionRoute />}><Route path="/onboarding" element={<Onboarding />} /></Route>
       <Route path="/app" element={<ProtectedRoute />}><Route element={<AppShell />}>
         <Route index element={<Navigate to="dashboard" replace />} />
@@ -34,6 +37,7 @@ export function App() {
         <Route path="members" element={<Members />} />
         <Route path="settings" element={<Settings />} />
         <Route path="imports" element={<Imports />} />
+        <Route path="sharing" element={<Sharing />} />
       </Route></Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
