@@ -12,6 +12,10 @@ export function participantIds(household, expenses) {
   for (const e of expenses) {
     const id = String(e.paidBy)
     if (!ids.includes(id)) ids.push(id)
+    for (const split of e.splits ?? []) {
+      const splitId = String(split.memberId)
+      if (!ids.includes(splitId)) ids.push(splitId)
+    }
   }
   return ids
 }
