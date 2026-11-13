@@ -31,7 +31,7 @@ export function MembersPage() {
               {members.map((m, i) => {
                 const t = summary.data?.byMember.find((x) => x.memberId === m.id)
                 const b = settlement.data?.members.find((x) => x.memberId === m.id)
-                return <MemberCard key={m.id} member={m} contribution={t?.total ?? 0} count={t?.count ?? 0} balance={b?.balance ?? 0} isMe={m.id === user?.id} index={i} />
+                return <MemberCard key={m.id} member={m} contribution={t?.total ?? 0} count={t?.count ?? 0} balance={b?.balance ?? 0} month={month} isMe={m.id === user?.id} index={i} />
               })}
             </ul>
           )}
