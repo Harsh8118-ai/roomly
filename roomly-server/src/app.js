@@ -32,6 +32,9 @@ export function createApp() {
 
   app.use('/api', rateLimit({ windowMs: 60_000, limit: 600, standardHeaders: 'draft-7', legacyHeaders: false, skip: () => env.isTest, message: { message: 'Too many requests. Slow down a little.' } }))
 
+  // Binary-sized text exports are sent as JSON to the import endpoint. Keep this limit scoped to imports.
+  app.use('/api/imports', express.json({ limit: '12mb' }))
+
   // Receipt uploads arrive as base64 JSON, so that one route gets a bigger body limit.
   app.use('/api/uploads', express.json({ limit: '8mb' }))
   app.use(express.json({ limit: '100kb' }))
