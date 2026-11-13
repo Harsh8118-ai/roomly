@@ -8,7 +8,6 @@ import { Bug, Copy, LogOut, Monitor, Moon, RotateCcw, Sun, UserPlus } from 'luci
 import { PageHeader } from '@/components/layout/PageHeader'
 import { SettingsSection } from '@/components/common/SettingsSection'
 import { WhatsAppSection } from '@/components/whatsapp/WhatsAppSection'
-import { PasswordInput } from '@/components/common/PasswordInput'
 import { InviteDialog } from '@/components/members/InviteDialog'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
@@ -16,7 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
 import { Input } from '@/components/ui/Field'
 import { Switch } from '@/components/ui/Switch'
-import { householdNameSchema, passwordSchema, profileSchema, type HouseholdNameValues, type PasswordValues, type ProfileValues } from '@/schemas'
+import { householdNameSchema, profileSchema, type HouseholdNameValues, type ProfileValues } from '@/schemas'
 import { authService } from '@/services/authService'
 import { householdService } from '@/services/householdService'
 import { useHousehold, useMembers } from '@/hooks/queries'
@@ -146,22 +145,12 @@ function HouseholdSection() {
 function SecuritySection() {
   const { logout } = useAuth()
   const navigate = useNavigate()
-  const toast = useToast()
-  const [busy, setBusy] = useState(false)
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<PasswordValues>({ resolver: zodResolver(passwordSchema) })
-  const change = handleSubmit(async (v) => {
-    setBusy(true)
-    try { await authService.changePassword({ currentPassword: v.currentPassword, newPassword: v.newPassword }); reset(); toast.success('Password updated') }
-    catch (e) { toast.error(friendlyError(e)) } finally { setBusy(false) }
-  })
   return (
-    <SettingsSection id="security" title="Security">
-      <form onSubmit={change} noValidate className="grid max-w-md gap-4">
-        <PasswordInput label="Current password" autoComplete="current-password" error={errors.currentPassword?.message} {...register('currentPassword')} />
-        <PasswordInput label="New password" autoComplete="new-password" error={errors.newPassword?.message} {...register('newPassword')} />
-        <PasswordInput label="Confirm new password" autoComplete="new-password" error={errors.confirm?.message} {...register('confirm')} />
-        <div><Button type="submit" variant="secondary" loading={busy} loadingText="Updating…">Change password</Button></div>
-      </form>
+    <SettingsSection id="security" title="Security" description="Your Roomly identity is managed securely through Google OAuth.">
+      <div className="flex items-center justify-between gap-4">
+        <div><p className="text-sm font-medium">Google account sign-in</p><p className="t-small text-muted">Manage your password and two-step verification in your Google account.</p></div>
+        <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-sm font-medium text-accent-strong hover:underline">Google security</a>
+      </div>
       <div className="mt-6 flex items-center justify-between gap-4 border-t border-line pt-5">
         <div><p className="text-sm font-medium">Log out</p><p className="t-small text-muted">Sign out of Roomly on this device.</p></div>
         <Button variant="secondary" leftIcon={<LogOut size={15} />} onClick={async () => { await logout(); navigate(ROUTES.login) }}>Log out</Button>
