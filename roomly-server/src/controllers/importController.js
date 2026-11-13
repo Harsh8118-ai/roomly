@@ -19,16 +19,16 @@ const publicMessage = (message) => ({
 
 function normalizeSender(value) {
   return String(value ?? '').normalize('NFKC').toLowerCase()
-    .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')
-    .replace(/[^\\p{L}\\p{N}]+/gu, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
     .trim()
 }
 
 function senderDisplayName(value) {
   return String(value ?? '').normalize('NFKC')
-    .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')
-    .replace(/[^\\p{L}\\p{N}\\s'-]/gu, '')
-    .replace(/\\s+/g, ' ').trim().slice(0, 60)
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[^\p{L}\p{N}\s'-]/gu, '')
+    .replace(/\s+/g, ' ').trim().slice(0, 60)
 }
 
 function resolveSenderMember(household, sender, currentMember) {
@@ -38,7 +38,7 @@ function resolveSenderMember(household, sender, currentMember) {
   const existing = household.members.find((member) => normalizeSender(member.name) === key)
   if (existing) return existing
   const name = senderDisplayName(sender)
-  if (!name || !/\\p{L}/u.test(name) || household.members.length >= MAX_MEMBERS) return null
+  if (!name || !/\p{L}/u.test(name) || household.members.length >= MAX_MEMBERS) return null
   household.members.push({ name, role: 'member', status: 'active', tone: nextTone(household) })
   return household.members[household.members.length - 1]
 }
