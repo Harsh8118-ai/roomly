@@ -15,12 +15,21 @@ export interface SettlementMath {
 }
 
 /** Paid vs. fair share for every member. Balances always sum to zero. */
-export function computeBalances(expenses: Pick<Expense, 'amount' | 'paidBy'>[], memberIds: string[]): SettlementMath {
+export function computeBalances(expenses: Pick<Expense, 'amount' | 'paidBy' | 'splitType' | 'splits'>[], memberIds: string[]): SettlementMath {
   const total = expenses.reduce((s, e) => s + e.amount, 0)
-  const shares = splitEvenly(total, memberIds.length)
-  const members = memberIds.map((memberId, i) => {
+  const shareByMember = new Map(memberIds.map((id) => [id, 0]))
+  let equalSplitTotal = 0
+  for (const expense of expenses) {
+    if (expense.splitType === 'custom' && expense.splits?.length) {
+      for (const split of expense.splits) shareByMember.set(split.memberId, (shareByMember.get(split.memberId) ?? 0) + split.amount)
+    } else equalSplitTotal += expense.amount
+  }
+  const equalShares = splitEvenly(equalSplitTotal, memberIds.length)
+  memberIds.forEach((id, i) => shareByMember.set(id, (shareByMember.get(id) ?? 0) + equalShares[i]))
+  const members = memberIds.map((memberId) => {
     const paid = expenses.filter((e) => e.paidBy === memberId).reduce((s, e) => s + e.amount, 0)
-    return { memberId, paid, share: shares[i], balance: paid - shares[i] }
+    const share = shareByMember.get(memberId) ?? 0
+    return { memberId, paid, share, balance: paid - share }
   })
   return { total, fairShare: memberIds.length ? Math.round(total / memberIds.length) : 0, members }
 }
