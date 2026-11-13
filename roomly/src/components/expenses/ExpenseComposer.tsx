@@ -20,6 +20,7 @@ import type { CategoryId, Expense } from '@/types'
 
 const toForm = (e: Expense): ExpenseFormValues => ({
   amount: String(e.amount), title: e.title, category: e.category, paidBy: e.paidBy, date: e.date, note: e.note ?? '', receiptUrl: e.receiptUrl,
+  splitType: e.splitType ?? 'equal', splits: e.splits ?? [],
 })
 
 /** Add / edit expense. Built for one-handed use at the checkout counter: amount → what → category → done. */
@@ -36,7 +37,7 @@ export function ExpenseComposer() {
   const autoTitle = useRef('')
 
   const defaults = useMemo<ExpenseFormValues>(() => editing ? toForm(editing) : ({
-    amount: '', title: '', category: '' as CategoryId, paidBy: user?.id ?? '', date: todayISO(), note: '', receiptUrl: undefined,
+    amount: '', title: '', category: '' as CategoryId, paidBy: user?.id ?? '', date: todayISO(), note: '', receiptUrl: undefined, splitType: 'equal', splits: [],
   }), [editing, user?.id])
 
   const { register, handleSubmit, control, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm<ExpenseFormValues>({
@@ -53,6 +54,8 @@ export function ExpenseComposer() {
   const date = watch('date')
   const paidBy = watch('paidBy')
   const title = watch('title')
+  const splitType = watch('splitType')
+  const splits = watch('splits')
   const payer = members.find((m) => m.id === paidBy)
 
   // Smart assist: guess the category from the title until the user picks one themselves.
@@ -71,7 +74,7 @@ export function ExpenseComposer() {
 
   const onSubmit = handleSubmit(async (v) => {
     setServerError('')
-    const input = { title: v.title.trim(), amount: Number(v.amount.replace(/,/g, '')), category: v.category as CategoryId, paidBy: v.paidBy, date: v.date, note: v.note?.trim() || undefined, receiptUrl: v.receiptUrl || undefined }
+    const input = { title: v.title.trim(), amount: Number(v.amount.replace(/,/g, '')), category: v.category as CategoryId, paidBy: v.paidBy, date: v.date, note: v.note?.trim() || undefined, receiptUrl: v.receiptUrl || undefined, splitType: v.splitType, splits: v.splitType === 'custom' ? v.splits : [] }
     try {
       if (editing) await update.mutateAsync({ id: editing.id, input }); else await create.mutateAsync(input)
       setPhase('success')
@@ -158,6 +161,28 @@ export function ExpenseComposer() {
                     </div>
                   </div>
                   <Textarea label="Note" optional placeholder="Anything the others should know?" error={errors.note?.message} {...register('note')} />
+                  <Select label="Split method" {...register('splitType', { onChange: (event) => {
+                    const mode = event.target.value as 'equal' | 'custom'
+                    if (mode === 'custom') {
+                      const total = Math.round(Number((watch('amount') || '0').replace(/,/g, '')))
+                      const base = members.length ? Math.floor(total / members.length) : 0
+                      let remainder = total - base * members.length
+                      setValue('splits', members.map((member) => ({ memberId: member.id, amount: base + (remainder-- > 0 ? 1 : 0) })), { shouldValidate: true })
+                    } else setValue('splits', [])
+                  } })}>
+                    <option value="equal">Split equally between everyone</option>
+                    <option value="custom">Custom amounts per member</option>
+                  </Select>
+                  {splitType === 'custom' && <div className="rounded-lg border border-line p-3">
+                    <p className="mb-2 text-xs font-medium text-muted">Set each member’s share. The total must match the expense amount.</p>
+                    <div className="space-y-2">
+                      {members.map((member, index) => <label key={member.id} className="flex items-center justify-between gap-3 text-sm">
+                        <span>{member.name}</span>
+                        <span className="flex items-center gap-1"><span className="text-muted">₹</span><input type="number" min="0" step="1" className="h-9 w-28 rounded-md border border-line bg-surface px-2 text-right tnum" {...register('splits.' + index + '.amount', { valueAsNumber: true })} /></span>
+                      </label>)}
+                    </div>
+                    {errors.splits?.message && <p role="alert" className="mt-2 text-xs text-danger">{errors.splits.message}</p>}
+                  </div>}
                   <div>
                     <p className="mb-1.5 flex items-baseline justify-between text-[13px] font-medium">Receipt <span className="text-xs font-normal text-subtle">Optional</span></p>
                     <Controller control={control} name="receiptUrl" render={({ field }) => <ReceiptUpload value={field.value} onChange={field.onChange} />} />
