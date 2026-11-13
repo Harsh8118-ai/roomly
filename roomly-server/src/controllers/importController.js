@@ -16,44 +16,94 @@ const publicMessage = (message) => ({
   sentAt: message.sentAt, text: message.text, parsed: message.parsed, status: message.status,
 })
 
+function normalizeSender(value) {
+  return String(value ?? '').normalize('NFKC').toLowerCase()
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+    .trim()
+}
+
 export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   const { content, filename = 'WhatsApp Chat.txt' } = req.body ?? {}
   if (typeof content !== 'string' || !content.trim()) throw ApiError.invalid('Upload a non-empty WhatsApp .txt or .md chat export.')
-  if (typeof filename !== 'string') throw ApiError.invalid('Choose a valid .txt or .md filename.')
+  if (typeof filename !== 'string' || !/\.(txt|md)$/i.test(filename)) throw ApiError.invalid('Please upload a WhatsApp .txt or .md export.')
   if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
-  if (!/\.(txt|md)$/i.test(filename)) throw ApiError.invalid('Please upload a WhatsApp .txt or .md export.')
 
   const batch = await ChatImport.create({
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
+    status: 'completed',
   })
   const parsedMessages = parseWhatsAppExport(content, req.household._id)
-  const memberByName = new Map(req.household.members.map((m) => [m.name.trim().toLowerCase(), m._id]))
-  let duplicates = 0, newMessages = 0, candidates = 0, ignored = 0
+  const memberByName = new Map()
+  for (const member of req.household.members) {
+    const key = normalizeSender(member.name)
+    if (key) memberByName.set(key, member._id)
+  }
+  let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
   for (const item of parsedMessages) {
-    const expenseCandidate = item.parsed.kind === 'expense'
-    const status = expenseCandidate ? 'pending' : 'ignored'
+    const isExpense = item.parsed.kind === 'expense'
+    // In WhatsApp exports, "You" means the account that exported the chat.
+    const senderMemberId = /^you$/i.test(item.sender.trim())
+      ? req.user._id
+      : memberByName.get(normalizeSender(item.sender))
+    let status = 'ignored'
+    if (isExpense && senderMemberId) status = 'approved'
+    else if (isExpense) status = 'pending'
+
     const doc = {
       householdId: req.household._id, importId: batch._id, fingerprint: item.fingerprint,
-      sender: item.sender, senderMemberId: memberByName.get(item.sender.toLowerCase()) ?? null,
-      sentAt: item.sentAt, ...(expenseCandidate ? { text: item.text.slice(0, 1000), parsed: item.parsed } : {}),
+      sender: item.sender, senderMemberId: senderMemberId ?? null,
+      sentAt: item.sentAt, text: item.text.slice(0, 1000),
+      ...(isExpense ? { parsed: item.parsed } : {}),
       status,
     }
     try {
-      await ImportedMessage.create(doc)
+      const message = await ImportedMessage.create(doc)
       newMessages++
-      if (expenseCandidate) candidates++
-      else ignored++
+      if (!isExpense) { ignored++; continue }
+      if (!senderMemberId) { unmatched++; continue }
+
+      const amount = Number(item.parsed.amount)
+      const title = String(item.parsed.title ?? '').trim()
+      const category = CATEGORY_IDS.includes(item.parsed.category) ? item.parsed.category : 'other'
+      const sentAt = new Date(item.sentAt)
+      const date = new Date(sentAt.getTime() + Number(item.parsed.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
+      if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80) {
+        message.status = 'ignored'
+        await message.save()
+        ignored++
+        continue
+      }
+      if (await isMonthClosed(req.household, monthOf(date))) {
+        message.status = 'pending'
+        await message.save()
+        unmatched++
+        continue
+      }
+      const expense = await Expense.create({
+        householdId: req.household._id, title, amount, category, paidBy: senderMemberId, date,
+        note: 'Imported from WhatsApp chat', createdBy: req.user._id, source: 'whatsapp',
+        whatsappMessageId: 'import:' + message._id,
+      })
+      message.status = 'approved'
+      message.expenseId = expense._id
+      await message.save()
+      imported++
+      publish(req.household._id, { type: 'expense.created', id: String(expense._id), by: String(req.user._id), source: 'whatsapp', title, amount, category })
     } catch (error) {
       if (error?.code === 11000) { duplicates++; continue }
       throw error
     }
   }
-  batch.stats = { total: parsedMessages.length, newMessages, duplicates, candidates, ignored, approved: 0, rejected: 0 }
-  if (candidates === 0) batch.status = 'completed'
+  batch.stats = {
+    total: parsedMessages.length, newMessages, duplicates,
+    candidates: parsedMessages.filter((item) => item.parsed.kind === 'expense').length,
+    ignored, approved: imported, rejected: 0, unmatched,
+  }
   await batch.save()
   res.status(201).json({
     import: { id: String(batch._id), filename: batch.filename, status: batch.status, stats: batch.stats },
-    messages: (await ImportedMessage.find({ importId: batch._id, status: 'pending' }).sort({ sentAt: 1 }).lean()).map(publicMessage),
+    messages: [],
   })
 })
 
