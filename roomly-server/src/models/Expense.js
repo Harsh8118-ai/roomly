@@ -14,6 +14,11 @@ const expenseSchema = new mongoose.Schema(
     note: { type: String, trim: true, maxlength: 240 },
     receiptUrl: { type: String, maxlength: 2048 },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    splitType: { type: String, enum: ['equal', 'custom'], default: 'equal' },
+    splits: [{
+      memberId: { type: mongoose.Schema.Types.ObjectId, required: true },
+      amount: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    }],
     /** Where it was recorded. */
     source: { type: String, enum: ['web', 'whatsapp'], default: 'web' },
     /** WhatsApp message id — guarantees a retried webhook can't create a duplicate. */
