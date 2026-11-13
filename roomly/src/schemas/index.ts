@@ -56,8 +56,10 @@ export const expenseSchema = z.object({
   title: z.string().trim().min(1, 'What did you buy?').max(80, 'Keep it under 80 characters'),
   category: z.enum(categoryIds, { message: 'Pick a category' }),
   paidBy: z.string().min(1, 'Who paid?'),
+  splitType: z.enum(['equal', 'custom']).default('equal'),
+  splits: z.array(z.object({ memberId: z.string().min(1), amount: z.number().int().nonnegative() })).max(12).default([]),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a valid date'),
   note: z.string().max(240, 'Keep notes under 240 characters').optional(),
   receiptUrl: z.string().optional(),
-})
+}).refine((v) => v.splitType !== 'custom' || v.splits.reduce((sum, split) => sum + split.amount, 0) === Math.round(Number(v.amount.replace(/,/g, ''))), { path: ['splits'], message: 'Split amounts must add up to the expense total.' })
 export type ExpenseFormValues = z.infer<typeof expenseSchema>
