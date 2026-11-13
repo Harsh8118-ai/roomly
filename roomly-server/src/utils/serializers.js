@@ -36,6 +36,8 @@ export const publicExpense = (e) => ({
   category: e.category,
   paidBy: String(e.paidBy),
   date: e.date,
+  splitType: e.splitType ?? 'equal',
+  splits: (e.splits ?? []).map((split) => ({ memberId: String(split.memberId), amount: split.amount })),
   ...(e.note ? { note: e.note } : {}),
   ...(e.receiptUrl ? { receiptUrl: e.receiptUrl } : {}),
   source: e.source ?? 'web',
