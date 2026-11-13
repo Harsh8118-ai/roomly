@@ -19,6 +19,7 @@ const publicMessage = (message) => ({
 export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   const { content, filename = 'WhatsApp Chat.txt' } = req.body ?? {}
   if (typeof content !== 'string' || !content.trim()) throw ApiError.invalid('Upload a non-empty WhatsApp .txt export.')
+  if (typeof filename !== 'string') throw ApiError.invalid('Choose a valid .txt filename.')
   if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
   if (!/\.txt$/i.test(filename)) throw ApiError.invalid('Please upload a WhatsApp .txt export.')
 
@@ -48,6 +49,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     }
   }
   batch.stats = { total: parsedMessages.length, newMessages, duplicates, candidates, ignored, approved: 0, rejected: 0 }
+  if (candidates === 0) batch.status = 'completed'
   await batch.save()
   res.status(201).json({
     import: { id: String(batch._id), filename: batch.filename, status: batch.status, stats: batch.stats },
@@ -71,6 +73,7 @@ export const approveImportMessages = asyncHandler(async (req, res) => {
   if (!decisions.length || decisions.length > 500) throw ApiError.invalid('Choose at least one expense to review.')
   let approved = 0, rejected = 0
   for (const decision of decisions) {
+    if (!['approve', 'reject'].includes(decision.action)) throw ApiError.invalid('Choose approve or reject for each message.')
     const message = await ImportedMessage.findOne({ _id: decision.messageId, importId: batch._id, householdId: req.household._id, status: 'pending' })
     if (!message) continue
     if (decision.action === 'reject') {
