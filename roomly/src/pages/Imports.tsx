@@ -1,25 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { FileUp, Check, X, RefreshCw, History, FileArchive } from 'lucide-react'
+import { FileUp, RefreshCw, History, FileArchive } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/Button'
 import { useMembers } from '@/hooks/queries'
 import { api } from '@/services/api/client'
 import { useAuth } from '@/store/AuthProvider'
 import { useToast } from '@/store/ToastProvider'
-import { CATEGORY_MAP } from '@/constants/categories'
-import type { CategoryId } from '@/types'
 
-type ImportStats = { total: number; newMessages: number; duplicates: number; candidates: number; ignored: number; approved?: number; rejected?: number }
+type ImportStats = { total: number; newMessages: number; duplicates: number; candidates: number; ignored: number; approved?: number; rejected?: number; unmatched?: number }
 type ImportRecord = { id: string; filename: string; status: 'review' | 'completed'; stats: ImportStats; createdAt: string }
-type Candidate = {
-  id: string; sender: string; senderMemberId: string | null; sentAt: string; text: string;
-  parsed: { amount: number; title: string; category: CategoryId | null; confidence: 'high' | 'medium'; dayOffset: number };
-  status: string;
-}
 type ImportResponse = {
-  import: { id: string; filename: string; stats: ImportStats };
-  messages: Candidate[];
+  import: { id: string; filename: string; stats: ImportStats }
+  messages: unknown[]
 }
 
 async function readZipChat(file: File): Promise<{ filename: string; content: string }> {
