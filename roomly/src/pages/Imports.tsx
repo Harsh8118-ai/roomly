@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { FileUp, Check, X, RefreshCw } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -19,7 +19,6 @@ type ImportResponse = {
   import: { id: string; filename: string; stats: { total: number; newMessages: number; duplicates: number; candidates: number; ignored: number } };
   messages: Candidate[];
 }
-const CATEGORIES = Object.keys(CATEGORY_MAP) as CategoryId[]
 
 export function ImportsPage() {
   const { user } = useAuth()
@@ -59,8 +58,8 @@ export function ImportsPage() {
         category: candidate.parsed.category || 'other',
       }] })
       setCandidates((items) => items.filter((item) => item.id !== candidate.id))
-      await qc.invalidateQueries({ queryKey: ['expenses'] })
-      await qc.invalidateQueries({ queryKey: ['settlement'] })
+      await qc.invalidateQueries({ queryKey: ['hh'] })
+      await qc.invalidateQueries({ queryKey: ['hh'] })
       toast.success(action === 'approve' ? 'Expense added to Roomly.' : 'Message rejected.')
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not update this message.') }
   }
