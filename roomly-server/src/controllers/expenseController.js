@@ -26,9 +26,15 @@ function assertCanModify(req, expense) {
   throw ApiError.forbidden('Only the person who paid, or an admin, can change this expense.')
 }
 
-function assertValidTarget(req, { paidBy, date }) {
+function assertValidTarget(req, { paidBy, date, amount, splitType = 'equal', splits = [] }) {
   if (!req.household.members.id(paidBy)) throw ApiError.invalid('Pick who paid.')
   if (date > addDays(todayISO(), 1)) throw ApiError.invalid('That date is in the future.')
+  if (splitType === 'custom') {
+    if (!splits.length) throw ApiError.invalid('Add at least one member to the custom split.')
+    const ids = splits.map((split) => String(split.memberId))
+    if (new Set(ids).size !== ids.length || ids.some((id) => !req.household.members.id(id))) throw ApiError.invalid('Choose each household member only once in the split.')
+    if (splits.reduce((sum, split) => sum + split.amount, 0) !== amount) throw ApiError.invalid('Custom split amounts must add up to the expense total.')
+  } else if (splits.length) throw ApiError.invalid('Remove custom allocations or choose a custom split.')
 }
 
 export const list = asyncHandler(async (req, res) => {
