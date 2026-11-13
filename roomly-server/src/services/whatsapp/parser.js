@@ -61,7 +61,7 @@ const COMMANDS = [
  *   | {kind:'ignore',reason:string}}
  */
 export function parseMessage(input) {
-  const raw = String(input ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim()
+  const raw = String(input ?? '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/(?<=\d)\s*[-–—]\s*(?=[\p{L}])/gu, ' ').replace(/\s+/g, ' ').trim()
   if (!raw) return { kind: 'ignore', reason: 'empty' }
   if (raw.length > MAX_LENGTH) return { kind: 'ignore', reason: 'too-long' }
 
