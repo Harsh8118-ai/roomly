@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { UserPlus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { MemberCard } from '@/components/members/MemberCard'
+import { MonthSelector } from '@/components/common/MonthSelector'
 import { InviteDialog } from '@/components/members/InviteDialog'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/EmptyState'
@@ -11,7 +12,7 @@ import { useAuth } from '@/store/AuthProvider'
 import { currentMonth, monthLabel } from '@/utils/date'
 
 export function MembersPage() {
-  const month = currentMonth()
+  const [month, setMonth] = useState(currentMonth())
   const { user } = useAuth()
   const { members, isPending, isError, refetch } = useMembers()
   const summary = useSummary(month)
@@ -21,7 +22,7 @@ export function MembersPage() {
   return (
     <>
       <PageHeader title="Group" description={`${members.length || ''} people sharing the home · ${monthLabel(month)}`}
-        actions={<Button variant="secondary" leftIcon={<UserPlus size={16} />} onClick={() => setInvite(true)}>Invite</Button>} />
+        actions={<><MonthSelector month={month} onChange={setMonth} /><Button variant="secondary" leftIcon={<UserPlus size={16} />} onClick={() => setInvite(true)}>Invite</Button></>} />
       {isError ? <ErrorState description="We couldn’t load your housemates." onRetry={refetch} />
         : isPending || summary.isPending || settlement.isPending
           ? <div className="grid gap-4 sm:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-44 rounded-xl" />)}</div>
