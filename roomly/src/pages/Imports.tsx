@@ -59,7 +59,6 @@ export function ImportsPage() {
       }] })
       setCandidates((items) => items.filter((item) => item.id !== candidate.id))
       await qc.invalidateQueries({ queryKey: ['hh'] })
-      await qc.invalidateQueries({ queryKey: ['hh'] })
       toast.success(action === 'approve' ? 'Expense added to Roomly.' : 'Message rejected.')
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not update this message.') }
   }
