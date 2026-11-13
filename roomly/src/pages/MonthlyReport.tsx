@@ -18,7 +18,7 @@ import { formatDate, monthLabel } from '@/utils/date'
 import { formatINR, pluralize } from '@/utils/format'
 import { Receipt } from 'lucide-react'
 
-export function MonthlyReportPage() {
+export function MonthlyReportPage({ wrapped = false }: { wrapped?: boolean }) {
   const { month = '' } = useParams()
   const valid = /^\d{4}-(0[1-9]|1[0-2])$/.test(month)
   const summary = useSummary(valid ? month : '2000-01')
@@ -26,8 +26,8 @@ export function MonthlyReportPage() {
   const { byId } = useMembers()
   const back = { to: ROUTES.history, label: 'History' }
 
-  if (!valid) return <><PageHeader title="Report" back={back} /><ErrorState title="That month doesn’t exist." description="Pick a month from your history." /></>
-  if (summary.isError || settlement.isError) return <><PageHeader title={monthLabel(month)} back={back} /><ErrorState description="We couldn’t load this report." onRetry={() => { summary.refetch(); settlement.refetch() }} /></>
+  if (!valid) return <><PageHeader title={wrapped ? 'Roomly Wrapped' : 'Report'} back={back} /><ErrorState title="That month doesn’t exist." description="Pick a month from your history." /></>
+  if (summary.isError || settlement.isError) return <><PageHeader title={wrapped ? `${monthLabel(month)} Wrapped` : monthLabel(month)} back={back} /><ErrorState description="We couldn’t load this report." onRetry={() => { summary.refetch(); settlement.refetch() }} /></>
   if (summary.isPending || settlement.isPending) return <><PageHeader title={monthLabel(month)} back={back} /><div className="space-y-4"><Skeleton className="h-40 rounded-2xl" /><Skeleton className="h-64 rounded-xl" /></div></>
 
   const s = summary.data; const st = settlement.data
@@ -36,9 +36,9 @@ export function MonthlyReportPage() {
   return (
     <>
       <PageHeader
-        title={`${monthLabel(month)} report`} back={back}
+        title={wrapped ? `${monthLabel(month)} Wrapped` : `${monthLabel(month)} report`} back={back}
         description={<span className="inline-flex items-center gap-2">{pluralize(s.expenseCount, 'expense')} {st.status === 'settled' ? <Badge tone="success" dot>Settled</Badge> : <Badge tone="warning" dot>Open</Badge>}</span>}
-        actions={<LinkButton to={ROUTES.wrapped(month)} variant="secondary" leftIcon={<Sparkles size={15} />}>Watch Wrapped</LinkButton>}
+        actions={wrapped ? <LinkButton to={ROUTES.report(month)} variant="secondary">View full report</LinkButton> : <LinkButton to={ROUTES.wrapped(month)} variant="secondary" leftIcon={<Sparkles size={15} />}>Watch Wrapped</LinkButton>}
       />
 
       <Card variant="primary" className="grid gap-6 p-6 sm:grid-cols-3">
