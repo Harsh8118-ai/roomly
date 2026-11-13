@@ -91,7 +91,7 @@ export function ImportsPage() {
       await qc.invalidateQueries({ queryKey: ['hh'] })
       await refreshHistory()
       const stats = result.import.stats
-      toast.success(\`Imported \${stats.approved ?? 0} expenses. \${stats.duplicates} duplicates skipped; \${stats.unmatched ?? 0} sender/month issues need attention in history.\`)
+      toast.success(`Imported ${stats.approved ?? 0} expenses. ${stats.duplicates} duplicates skipped; ${stats.unmatched ?? 0} sender/month issues need attention in history.`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not import this chat.')
     } finally { setBusy(false) }
