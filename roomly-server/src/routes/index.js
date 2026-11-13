@@ -11,6 +11,7 @@ import * as settlements from '../controllers/settlementController.js'
 import * as notifications from '../controllers/notificationController.js'
 import { uploadReceipt } from '../controllers/uploadController.js'
 import * as whatsapp from '../controllers/whatsappController.js'
+import * as imports from '../controllers/importController.js'
 import { stream } from '../controllers/eventsController.js'
 
 const router = Router()
@@ -53,6 +54,11 @@ router.post('/settlements/:month/transactions/:tx/pay', ...inHousehold, validate
 router.delete('/settlements/:month/transactions/:tx/pay', ...inHousehold, validate({ params: v.monthParam }), settlements.markUnpaid)
 router.get('/summaries/:month', ...inHousehold, validate({ params: v.monthParam }), settlements.summary)
 router.get('/months', ...inHousehold, settlements.months)
+
+router.post('/imports/whatsapp', ...inHousehold, requireAdmin, imports.uploadWhatsAppExport)
+router.get('/imports', ...inHousehold, imports.listImports)
+router.get('/imports/:id/review', ...inHousehold, requireAdmin, imports.getImportReview)
+router.post('/imports/:id/review', ...inHousehold, requireAdmin, imports.approveImportMessages)
 
 router.get('/whatsapp/status', ...inHousehold, whatsapp.status)
 router.post('/whatsapp/link-code', ...inHousehold, whatsapp.linkCode)
