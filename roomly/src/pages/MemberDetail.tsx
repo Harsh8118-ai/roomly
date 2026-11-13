@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Receipt } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { MonthSelector } from '@/components/common/MonthSelector'
@@ -14,7 +13,9 @@ import { ROUTES } from '@/constants/routes'
 
 export function MemberDetailPage() {
   const { id = '' } = useParams()
-  const [month, setMonth] = useState(currentMonth())
+  const [params, setParams] = useSearchParams()
+  const month = params.get('month') ?? currentMonth()
+  const setMonth = (value: string) => setParams((prev) => { const next = new URLSearchParams(prev); next.set('month', value); return next }, { replace: true })
   const { members, byId, isPending: membersPending } = useMembers()
   const member = byId(id)
   const query = useExpenses({ month, members: [id] })
