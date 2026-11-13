@@ -2,7 +2,6 @@ import { SummaryGrid } from '@/components/dashboard/SummaryGrid'
 import { RecentExpenses } from '@/components/dashboard/RecentExpenses'
 import { SettlementCard } from '@/components/dashboard/SettlementCard'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
-import { WhatsAppNudge } from '@/components/whatsapp/WhatsAppNudge'
 import { ErrorState } from '@/components/ui/EmptyState'
 import { useSettlement, useSummary } from '@/hooks/queries'
 import { useAuth } from '@/store/AuthProvider'
@@ -24,7 +23,6 @@ export function DashboardPage() {
   return (
     <div className="space-y-5 md:space-y-7">
       <DashboardHeader month={month} />
-      <WhatsAppNudge />
       <SummaryGrid month={month} summary={summary.data} settlement={settlement.data} userId={user.id} previousTotal={previous.data?.total} loading={loading} />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)] md:gap-6">
         <RecentExpenses userId={user.id} />
