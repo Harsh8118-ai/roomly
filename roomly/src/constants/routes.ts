@@ -5,5 +5,5 @@ export const ROUTES = {
   settlement: '/app/settlement', members: '/app/members',
   member: (id: string) => `/app/members/${id}`,
   history: '/app/history', report: (month: string) => `/app/history/${month}`,
-  wrapped: (month: string) => `/app/wrapped/${month}`, settings: '/app/settings', imports: '/app/imports',
+  wrapped: (month: string) => `/app/wrapped/${month}`, settings: '/app/settings', imports: '/app/imports', sharing: '/app/sharing',
 } as const
