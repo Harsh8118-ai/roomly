@@ -8,7 +8,6 @@ import { useHouseholds } from '@/hooks/queries'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { householdService } from '@/services/householdService'
 import { useAuth, ME_KEY } from '@/store/AuthProvider'
-import { useComposer } from '@/store/ComposerProvider'
 import { useTheme } from '@/store/ThemeProvider'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
@@ -24,7 +23,6 @@ export function CommandMenu({ open, onClose }: { open: boolean; onClose: () => v
   const qc = useQueryClient()
   const { user } = useAuth()
   const { data: households = [] } = useHouseholds()
-  const { openNew } = useComposer()
   const { resolved, setPref } = useTheme()
   useFocusTrap(ref, open, onClose)
 
@@ -33,7 +31,6 @@ export function CommandMenu({ open, onClose }: { open: boolean; onClose: () => v
   const go = (to: string) => () => navigate(to)
   const commands = useMemo<Cmd[]>(() => {
     const base: Cmd[] = [
-      { id: 'add', label: 'Add expense', icon: Plus, hint: 'N', keywords: 'new create purchase', run: openNew },
       { id: 'search', label: 'Search expenses', icon: Search, hint: '/', keywords: 'find', run: go(ROUTES.expenses) },
       { id: 'settle', label: 'View settlement', icon: Scale, keywords: 'owe balance pay', run: go(ROUTES.settlement) },
       { id: 'home', label: 'Go to overview', icon: LayoutDashboard, keywords: 'dashboard home', run: go(ROUTES.dashboard) },
