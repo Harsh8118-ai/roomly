@@ -32,7 +32,6 @@ export function fingerprintMessage(householdId, sender, sentAt, text) {
   ].join('|')).digest('hex')
 }
 
-/** Parse WhatsApp Android/iOS exports, including multi-line expense lists. */
 export function parseWhatsAppExport(content, householdId) {
   const lines = String(content ?? '').replace(/\r\n?/g, '\n').split('\n')
   const messages = []
