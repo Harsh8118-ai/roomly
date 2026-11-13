@@ -1,0 +1,38 @@
+name: Verify Roomly
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  frontend:
+    name: Frontend typecheck and production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: roomly/package-lock.json
+      - run: npm ci
+        working-directory: roomly
+      - run: npm run build
+        working-directory: roomly
+
+  backend:
+    name: Backend JavaScript syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: roomly-server/package-lock.json
+      - run: npm ci
+        working-directory: roomly-server
+      - name: Check JavaScript syntax
+        run: find roomly-server/src -name '*.js' -print0 | xargs -0 -n1 node --check
