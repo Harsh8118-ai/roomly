@@ -13,6 +13,7 @@ const chatImportSchema = new mongoose.Schema({
     ignored: { type: Number, default: 0 },
     approved: { type: Number, default: 0 },
     rejected: { type: Number, default: 0 },
+    unmatched: { type: Number, default: 0 },
   },
 }, { timestamps: true })
 
