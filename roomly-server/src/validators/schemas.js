@@ -35,13 +35,15 @@ const money = z.number({ error: 'Amount must be a number.' })
   .refine((n) => n <= 10_000_000, 'That’s a lot — double-check the amount.')
   .transform((n) => Math.round(n))
 
+const splitAmount = z.number({ error: 'Split amount must be a number.' }).int().nonnegative().max(10_000_000)
+
 export const expenseBody = z.object({
   title: z.string({ error: 'Add a short description.' }).trim().min(1, 'Add a short description.').max(80, 'Keep the description under 80 characters.'),
   amount: money,
   category: z.enum(CATEGORY_IDS, { error: 'Pick a category.' }),
   paidBy: objectId.refine(Boolean, 'Pick who paid.'),
   splitType: z.enum(['equal', 'custom']).default('equal'),
-  splits: z.array(z.object({ memberId: objectId, amount: money })).max(12).optional().default([]),
+  splits: z.array(z.object({ memberId: objectId, amount: splitAmount })).max(12).optional().default([]),
   date: z.string({ error: 'Pick a valid date.' }).refine(isISODate, 'Pick a valid date.'),
   note: z.string().trim().max(240, 'Keep notes under 240 characters.').optional().nullable().transform((v) => v || undefined),
   receiptUrl: z.string().max(2048).regex(/^https?:\/\//, 'Receipt link isn’t valid.').optional().nullable().transform((v) => v || undefined),
