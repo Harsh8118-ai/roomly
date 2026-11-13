@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Receipt, Sparkles } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -21,7 +20,9 @@ import { currentMonth, monthLabel } from '@/utils/date'
 import { formatINR, pluralize } from '@/utils/format'
 
 export function SettlementPage() {
-  const [month, setMonth] = useState(currentMonth())
+  const [params, setParams] = useSearchParams()
+  const month = params.get('month') ?? currentMonth()
+  const setMonth = (value: string) => setParams((prev) => { const next = new URLSearchParams(prev); next.set('month', value); return next }, { replace: true })
   const { user } = useAuth()
   const { byId, members } = useMembers()
   const { openNew } = useComposer()
