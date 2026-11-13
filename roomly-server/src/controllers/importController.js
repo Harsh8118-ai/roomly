@@ -1,4 +1,3 @@
-import mongoose from 'mongoose'
 import { ChatImport } from '../models/ChatImport.js'
 import { ImportedMessage } from '../models/ImportedMessage.js'
 import { Expense } from '../models/Expense.js'
@@ -12,11 +11,6 @@ import { monthOf } from '../utils/date.js'
 import { publish } from '../services/events.js'
 
 const MAX_EXPORT_CHARS = 10 * 1024 * 1024
-const publicMessage = (message) => ({
-  id: String(message._id), sender: message.sender, senderMemberId: message.senderMemberId ? String(message.senderMemberId) : null,
-  sentAt: message.sentAt, text: message.text, parsed: message.parsed, status: message.status,
-})
-
 function normalizeSender(value) {
   return String(value ?? '').normalize('NFKC').toLowerCase()
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
@@ -76,14 +70,12 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   })
   const parsedMessages = parseWhatsAppExport(content, req.household._id)
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
-  let householdChanged = false
   for (const item of parsedMessages) {
     const isExpense = item.parsed.kind === 'expense'
     const member = isExpense ? resolveSenderMember(req.household, item.sender, req.member) : null
-    if (member && !req.household.isModified('members')) householdChanged = true
     if (req.household.isModified('members')) await req.household.save()
     const senderMemberId = member?._id ?? null
-    let status = isExpense ? (senderMemberId ? 'approved' : 'pending') : 'ignored'
+    const status = isExpense ? (senderMemberId ? 'approved' : 'pending') : 'ignored'
     const doc = {
       householdId: req.household._id, importId: batch._id, fingerprint: item.fingerprint,
       sender: item.sender, senderMemberId,
@@ -134,7 +126,6 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     else if (created.invalid) { message.status = 'ignored'; await message.save(); ignored++ }
     else if (created.closed) { message.status = 'pending'; await message.save(); unmatched++ }
   }
-  if (householdChanged || req.household.isModified('members')) await req.household.save()
   batch.stats = {
     total: parsedMessages.length, newMessages, duplicates,
     candidates: parsedMessages.filter((item) => item.parsed.kind === 'expense').length,
@@ -145,60 +136,6 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     import: { id: String(batch._id), filename: batch.filename, status: batch.status, stats: batch.stats },
     messages: [],
   })
-})
-
-export const getImportReview = asyncHandler(async (req, res) => {
-  if (!mongoose.isValidObjectId(req.params.id)) throw ApiError.notFound('Import not found.')
-  const batch = await ChatImport.findOne({ _id: req.params.id, householdId: req.household._id }).lean()
-  if (!batch) throw ApiError.notFound('Import not found.')
-  const messages = await ImportedMessage.find({ importId: batch._id, status: 'pending' }).sort({ sentAt: 1 }).lean()
-  res.json({ import: { id: String(batch._id), filename: batch.filename, status: batch.status, stats: batch.stats }, messages: messages.map(publicMessage), members: req.household.members.map((m) => ({ id: String(m._id), name: m.name })) })
-})
-
-export const approveImportMessages = asyncHandler(async (req, res) => {
-  if (!mongoose.isValidObjectId(req.params.id)) throw ApiError.notFound('Import not found.')
-  const batch = await ChatImport.findOne({ _id: req.params.id, householdId: req.household._id })
-  if (!batch) throw ApiError.notFound('Import not found.')
-  const decisions = Array.isArray(req.body?.decisions) ? req.body.decisions : []
-  if (!decisions.length || decisions.length > 500) throw ApiError.invalid('Choose at least one expense to review.')
-  let approved = 0, rejected = 0
-  for (const decision of decisions) {
-    if (!['approve', 'reject'].includes(decision.action)) throw ApiError.invalid('Choose approve or reject for each message.')
-    const message = await ImportedMessage.findOne({ _id: decision.messageId, importId: batch._id, householdId: req.household._id, status: 'pending' })
-    if (!message) continue
-    if (decision.action === 'reject') {
-      message.status = 'rejected'
-      await message.save()
-      rejected++
-      continue
-    }
-    const member = req.household.members.id(decision.paidBy || message.senderMemberId)
-    if (!member) throw ApiError.invalid(`Map “${message.sender}” to a household member before approving.`)
-    const amount = Number(decision.amount ?? message.parsed?.amount)
-    const title = String(decision.title ?? message.parsed?.title ?? '').trim()
-    const category = decision.category ?? message.parsed?.category ?? 'other'
-    const sentAt = new Date(message.sentAt)
-    const date = new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
-    if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80 || !CATEGORY_IDS.includes(category)) throw ApiError.invalid('Check the expense amount, description and category.')
-    if (await isMonthClosed(req.household, monthOf(date))) throw ApiError.conflict('That expense belongs to a settled month. Reopen the month before importing it.')
-    const expense = await Expense.create({
-      householdId: req.household._id, title, amount, category, paidBy: member._id, date,
-      note: 'Imported from WhatsApp chat', createdBy: req.user._id, source: 'whatsapp',
-      whatsappMessageId: `import:${message._id}`,
-    })
-    message.senderMemberId = member._id
-    message.status = 'approved'
-    message.expenseId = expense._id
-    await message.save()
-    approved++
-    publish(req.household._id, { type: 'expense.created', id: String(expense._id), by: String(req.user._id), source: 'whatsapp', title, amount, category })
-  }
-  batch.stats.approved += approved
-  batch.stats.rejected += rejected
-  const pending = await ImportedMessage.countDocuments({ importId: batch._id, status: 'pending' })
-  if (pending === 0) batch.status = 'completed'
-  await batch.save()
-  res.json({ approved, rejected, pending, status: batch.status, stats: batch.stats })
 })
 
 export const listImports = asyncHandler(async (req, res) => {
