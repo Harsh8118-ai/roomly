@@ -2,8 +2,8 @@ import crypto from 'node:crypto'
 import { parseMessage } from './parser.js'
 
 const HEADER_PATTERNS = [
-  /^\uFEFF?\[(\d{1,4}[/-]\d{1,2}[/-]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)\]\s*([^:]+):\s?(.*)$/i,
-  /^\uFEFF?(\d{1,4}[/-]\d{1,2}[/-]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)\s+-\s+([^:]+):\s?(.*)$/i,
+  /^\\uFEFF?\\[(\\d{1,4}[/-]\\d{1,2}[/-]\\d{2,4}),\\s*(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(?:am|pm)?)\\]\\s*([^:]+):\\s?(.*)$/i,
+  /^\\uFEFF?(\\d{1,4}[/-]\\d{1,2}[/-]\\d{2,4}),\\s*(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*(?:am|pm)?)\\s+-\\s+([^:]+):\\s?(.*)$/i,
 ]
 
 function parseDate(datePart, timePart) {
@@ -12,7 +12,7 @@ function parseDate(datePart, timePart) {
   if (bits[0] > 31) [year, month, day] = bits
   else [day, month, year] = bits
   if (year < 100) year += year >= 70 ? 1900 : 2000
-  const time = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(timePart.trim())
+  const time = /^(\\d{1,2}):(\\d{2})(?::(\\d{2}))?\\s*(am|pm)?$/i.exec(timePart.trim())
   if (!time) return null
   let hour = Number(time[1])
   const meridiem = time[4]?.toLowerCase()
@@ -23,7 +23,7 @@ function parseDate(datePart, timePart) {
 }
 
 function normalize(value) {
-  return String(value ?? '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()
+  return String(value ?? '').normalize('NFKC').toLowerCase().replace(/\\s+/g, ' ').trim()
 }
 
 export function fingerprintMessage(householdId, sender, sentAt, text) {
@@ -32,11 +32,16 @@ export function fingerprintMessage(householdId, sender, sentAt, text) {
   ].join('|')).digest('hex')
 }
 
-/** Parse common WhatsApp Android and iOS text-export formats. */
+/**
+ * WhatsApp messages may contain several expense lines in one message.
+ * Split those lines before parsing so "5500 room\\n1000 mattress" becomes
+ * two review candidates instead of one ambiguous message.
+ */
 export function parseWhatsAppExport(content, householdId) {
-  const lines = String(content ?? '').replace(/\r\n?/g, '\n').split('\n')
+  const lines = String(content ?? '').replace(/\\r\\n?/g, '\\n').split('\\n')
   const messages = []
   let current = null
+
   for (const line of lines) {
     const match = HEADER_PATTERNS.map((pattern) => pattern.exec(line)).find(Boolean)
     if (match) {
@@ -44,17 +49,31 @@ export function parseWhatsAppExport(content, householdId) {
       const sentAt = parseDate(match[1], match[2])
       current = sentAt ? { sender: match[3].trim(), sentAt, text: match[4] ?? '' } : null
     } else if (current && line.trim()) {
-      current.text += `\n${line}`
+      current.text += `\\n${line}`
     }
   }
   if (current) messages.push(current)
 
-  return messages.map((message) => {
-    const parsed = parseMessage(message.text)
-    return {
-      ...message,
-      fingerprint: fingerprintMessage(householdId, message.sender, message.sentAt, message.text),
-      parsed,
+  const entries = []
+  for (const message of messages) {
+    const parts = message.text.split(/\\n+/).map((part) => part.trim()).filter(Boolean)
+    // Keep ordinary multi-line messages together if they are not a list of
+    // independently parseable expenses.
+    const parsedParts = parts.map((text) => ({ text, parsed: parseMessage(text) }))
+    const expenseParts = parsedParts.filter((part) => part.parsed.kind === 'expense')
+    const selected = expenseParts.length > 1 ? expenseParts : [{
+      text: message.text.trim(),
+      parsed: parseMessage(message.text),
+    }]
+    for (const part of selected) {
+      entries.push({
+        sender: message.sender,
+        sentAt: message.sentAt,
+        text: part.text,
+        fingerprint: fingerprintMessage(householdId, message.sender, message.sentAt, part.text),
+        parsed: part.parsed,
+      })
     }
-  })
+  }
+  return entries
 }
