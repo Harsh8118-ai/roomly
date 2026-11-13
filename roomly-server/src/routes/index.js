@@ -64,8 +64,6 @@ router.delete('/shares/:id', ...inHousehold, requireAdmin, shares.revokeShare)
 
 router.post('/imports/whatsapp', ...inHousehold, requireAdmin, imports.uploadWhatsAppExport)
 router.get('/imports', ...inHousehold, imports.listImports)
-router.get('/imports/:id/review', ...inHousehold, requireAdmin, imports.getImportReview)
-router.post('/imports/:id/review', ...inHousehold, requireAdmin, imports.approveImportMessages)
 
 router.get('/whatsapp/status', ...inHousehold, whatsapp.status)
 router.post('/whatsapp/link-code', ...inHousehold, whatsapp.linkCode)
