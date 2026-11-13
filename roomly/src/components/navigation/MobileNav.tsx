@@ -1,23 +1,13 @@
 import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { useComposer } from '@/store/ComposerProvider'
 import { MOBILE_NAV } from './navItems'
 import { ROUTES } from '@/constants/routes'
 
-/** Bottom tab bar + a thumb-reachable floating "Add expense" button. */
+/** Bottom tab navigation. Expenses are added through WhatsApp chat imports. */
 export function MobileNav() {
-  const { openNew } = useComposer()
   return (
     <>
-      <motion.button
-        onClick={openNew} aria-label="Add expense" whileTap={{ scale: 0.92 }}
-        initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 24, delay: 0.2 }}
-        className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 items-center gap-2 rounded-xl bg-accent-strong pl-4 pr-5 text-sm font-semibold text-on-accent shadow-lg md:hidden"
-      >
-        <Plus size={20} strokeWidth={2.5} aria-hidden /> Add expense
-      </motion.button>
       <nav
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
