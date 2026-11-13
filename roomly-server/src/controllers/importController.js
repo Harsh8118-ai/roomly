@@ -83,7 +83,7 @@ export const approveImportMessages = asyncHandler(async (req, res) => {
     if (!member) throw ApiError.invalid(`Map “${message.sender}” to a household member before approving.`)
     const amount = Number(decision.amount ?? message.parsed?.amount)
     const title = String(decision.title ?? message.parsed?.title ?? '').trim()
-    const category = decision.category ?? message.parsed?.category
+    const category = decision.category ?? message.parsed?.category ?? 'other'
     const sentAt = new Date(message.sentAt)
     const date = new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
     if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80 || !CATEGORY_IDS.includes(category)) throw ApiError.invalid('Check the expense amount, description and category.')
