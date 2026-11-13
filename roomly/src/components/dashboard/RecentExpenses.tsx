@@ -8,7 +8,7 @@ import { ExpenseRow } from '@/components/expenses/ExpenseRow'
 import { useExpenses, useMembers } from '@/hooks/queries'
 import { useComposer } from '@/store/ComposerProvider'
 import type { MonthKey } from '@/types'
-import { monthLabel } from '@/utils/date'
+import { currentMonth, monthLabel } from '@/utils/date'
 import { ROUTES } from '@/constants/routes'
 
 export function RecentExpenses({ userId, month }: { userId: string; month: MonthKey }) {
@@ -29,7 +29,7 @@ export function RecentExpenses({ userId, month }: { userId: string; month: Month
           </Card>
         ) : (
           <Card><EmptyState icon={Receipt} title="No expenses yet." description={`Your household hasn’t recorded any expenses in ${monthLabel(month)}.`}
-            action={month === new Date().toISOString().slice(0, 7) ? <Button onClick={openNew}>Add expense</Button> : undefined} /></Card>
+            action={month === currentMonth() ? <Button onClick={openNew}>Add expense</Button> : undefined} /></Card>
         )}
     </section>
   )
