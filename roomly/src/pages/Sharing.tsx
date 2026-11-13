@@ -53,7 +53,7 @@ export function SharingPage() {
       {links.isPending ? <p className="text-sm text-muted">Loading links…</p> : links.isError ? <p className="text-sm text-danger">Could not load share links.</p> : links.data.length === 0 ? <p className="text-sm text-muted">No links have been created yet.</p> : <div className="card divide-y divide-line">
         {links.data.map((link) => <div key={link.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
           <div><p className="text-sm font-medium">{link.showMemberBreakdown ? 'Household + member totals' : 'Household totals only'}</p><p className="mt-1 text-xs text-muted">{link.revoked ? 'Revoked' : 'Expires ' + (link.expiresAt ? new Date(link.expiresAt).toLocaleDateString() : 'never')}</p></div>
-          {link.revoked ? <span className="text-xs text-muted">Inactive</span> : <Button size="sm" variant="secondary" color="danger" leftIcon={<Trash2 size={14} />} onClick={() => revoke.mutate(link.id)} loading={revoke.isPending}>Revoke</Button>}
+          {link.revoked ? <span className="text-xs text-muted">Inactive</span> : <Button size="sm" variant="danger" leftIcon={<Trash2 size={14} />} onClick={() => revoke.mutate(link.id)} loading={revoke.isPending}>Revoke</Button>}
         </div>)}
       </div>}
     </section>
