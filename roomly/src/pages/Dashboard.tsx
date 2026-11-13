@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { SummaryGrid } from '@/components/dashboard/SummaryGrid'
+import { MonthSelector } from '@/components/common/MonthSelector'
 import { RecentExpenses } from '@/components/dashboard/RecentExpenses'
 import { SettlementCard } from '@/components/dashboard/SettlementCard'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
@@ -9,7 +11,7 @@ import { currentMonth, shiftMonth } from '@/utils/date'
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const month = currentMonth()
+  const [month, setMonth] = useState(currentMonth())
   const summary = useSummary(month)
   const previous = useSummary(shiftMonth(month, -1))
   const settlement = useSettlement(month)
@@ -22,10 +24,10 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5 md:space-y-7">
-      <DashboardHeader month={month} />
+      <div className="flex flex-wrap items-center justify-between gap-3"><DashboardHeader month={month} /><MonthSelector month={month} onChange={setMonth} /></div>
       <SummaryGrid month={month} summary={summary.data} settlement={settlement.data} userId={user.id} previousTotal={previous.data?.total} loading={loading} />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)] md:gap-6">
-        <RecentExpenses userId={user.id} />
+        <RecentExpenses userId={user.id} month={month} />
         <SettlementCard settlement={settlement.data} userId={user.id} loading={loading} />
       </div>
     </div>
