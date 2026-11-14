@@ -10,7 +10,7 @@ const PEOPLE = [
   { name: 'Vikas Singh', tone: 4, amount: -285 }, { name: 'Aman Verma', tone: 2, amount: -425 },
 ]
 
-export function AuthLayout({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
+export function AuthLayout({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer?: ReactNode }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <div className="flex flex-col px-5 py-6 sm:px-10">
