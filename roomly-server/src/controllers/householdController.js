@@ -17,12 +17,20 @@ export const create = asyncHandler(async (req, res) => {
   res.status(201).json(publicHousehold(await createHousehold(req.user, req.body.name)))
 })
 
+export const invitePreview = asyncHandler(async (req, res) => {
+  const code = String(req.params.inviteCode ?? '').toUpperCase()
+  const household = await Household.findOne({ inviteCode: code })
+  if (!household) throw ApiError.notFound('That invite link does not match a household.')
+  res.json({ id: String(household._id), name: household.name, members: household.members.filter((m) => m.status === 'active').map((m) => ({ id: String(m._id), name: m.name })) })
+})
+
 export const join = asyncHandler(async (req, res) => {
   const household = await Household.findOne({ inviteCode: req.body.inviteCode.toUpperCase() })
   if (!household) throw ApiError.notFound('That invite code doesn’t match any household.')
   if (household.members.id(req.user._id)) throw ApiError.conflict('You’re already in this household.')
+  if (req.body.memberId && !household.members.id(req.body.memberId)) throw ApiError.notFound('That household member is no longer available.')
   if (household.members.length >= MAX_MEMBERS) throw ApiError.invalid(`A household can have up to ${MAX_MEMBERS} members.`)
-  res.json(publicHousehold(await joinHousehold(req.user, household)))
+  res.json(publicHousehold(await joinHousehold(req.user, household, req.body.memberId)))
 })
 
 export const switchCurrent = asyncHandler(async (req, res) => {
