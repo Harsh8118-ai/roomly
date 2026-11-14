@@ -100,7 +100,6 @@ export function ImportsPage() {
       setSeparateMemberName('')
       const defaults: Record<string, string> = {}
       preview.senders.forEach((sender) => {
-        if (/^you$/i.test(sender)) return
         const match = members.find((member) => member.name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') === sender.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))
         defaults[sender] = match?.id ?? '__new__'
       })
@@ -115,7 +114,7 @@ export function ImportsPage() {
     if (!selfSender && !separateMemberName.trim()) { toast.error('Choose your sender identity or enter a separate member name.'); return }
     setBusy(true)
     try {
-      const senderMappings: SenderMapping[] = senders.filter((sender) => sender !== selfSender && !/^you$/i.test(sender)).map((sender) => {
+      const senderMappings: SenderMapping[] = senders.filter((sender) => sender !== selfSender).map((sender) => {
         const choice = senderChoices[sender]
         if (choice && choice !== '__new__') return { sender, memberId: choice }
         return { sender, name: sender }
