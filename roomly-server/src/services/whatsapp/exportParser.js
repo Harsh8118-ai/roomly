@@ -6,10 +6,11 @@ const HEADER_PATTERNS = [
   /^\uFEFF?(\d{1,4}[/-]\d{1,2}[/-]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)\s+-\s+([^:]+):\s?(.*)$/i,
 ]
 
-function parseDate(datePart, timePart) {
+function parseDate(datePart, timePart, dateOrder = 'DMY') {
   const bits = datePart.split(/[/-]/).map(Number)
   let day, month, year
   if (bits[0] > 31) [year, month, day] = bits
+  else if (dateOrder === 'MDY') [month, day, year] = bits
   else [day, month, year] = bits
   if (year < 100) year += year >= 70 ? 1900 : 2000
   const time = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(timePart.trim())
@@ -41,7 +42,7 @@ export function parseWhatsAppExport(content, householdId) {
     const match = HEADER_PATTERNS.map((pattern) => pattern.exec(line)).find(Boolean)
     if (match) {
       if (current) messages.push(current)
-      const sentAt = parseDate(match[1], match[2])
+      const sentAt = parseDate(match[1], match[2], dateOrder)
       current = sentAt ? { sender: match[3].trim(), sentAt, text: match[4] ?? '' } : null
     } else if (current && line.trim()) {
       current.text += '\n' + line
