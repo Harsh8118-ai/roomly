@@ -45,6 +45,7 @@ router.delete('/households/current/members/me', ...inHousehold, households.leave
 router.delete('/households/current/members/:memberId', ...inHousehold, requireAdmin, households.removeMember)
 
 router.get('/expenses', ...inHousehold, validate({ query: v.expenseQuery }), expenses.list)
+router.post('/expenses', ...inHousehold, validate({ body: v.expenseBody }), expenses.create)
 router.get('/expenses/:id', ...inHousehold, expenses.get)
 router.patch('/expenses/:id', ...inHousehold, validate({ body: v.expensePatchBody }), expenses.update)
 router.delete('/expenses/:id', ...inHousehold, expenses.remove)
