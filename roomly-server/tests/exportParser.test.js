@@ -42,3 +42,20 @@ test('infers month-first dates across the entire export when a day exceeds 12', 
   assert.deepEqual(parsed.slice(1).map((item) => item.sentAt.getDate()), [13, 13, 13])
   assert.deepEqual(parsed.slice(1).map((item) => item.parsed.amount), [120, 100, 20])
 })
+
+test('ambiguous exports accept an explicit date order', () => {
+  const content = '[11/12/26, 11:29:29 PM] Biro: 549-surf and all';
+  const monthFirst = parseWhatsAppExport(content, 'house-1', { dateOrder: 'MDY' });
+  const dayFirst = parseWhatsAppExport(content, 'house-1', { dateOrder: 'DMY' });
+  assert.equal(monthFirst[0].sentAt.getMonth(), 10);
+  assert.equal(monthFirst[0].sentAt.getDate(), 12);
+  assert.equal(dayFirst[0].sentAt.getMonth(), 11);
+  assert.equal(dayFirst[0].sentAt.getDate(), 11);
+});
+
+test('reports ambiguous date formats when no date disambiguates the export', async () => {
+  const { detectWhatsAppDateFormat } = await import('../src/services/whatsapp/exportParser.js');
+  assert.deepEqual(detectWhatsAppDateFormat('[11/11/26, 10:00 PM] You: 50 snacks'), {
+    dateOrder: null, inferred: false, ambiguous: true,
+  });
+});
