@@ -33,18 +33,24 @@ export function fingerprintMessage(householdId, sender, sentAt, text) {
   ].join('|')).digest('hex')
 }
 
-export function parseWhatsAppExport(content, householdId) {
+export function detectWhatsAppDateFormat(content) {
   const lines = String(content ?? '').replace(/\r\n?/g, '\n').split('\n')
-  // Infer the export's date convention from an unambiguous date and apply it
-  // consistently to ambiguous dates throughout the same file.
-  let dateOrder = 'DMY'
   for (const line of lines) {
     const header = HEADER_PATTERNS.map((pattern) => pattern.exec(line)).find(Boolean)
     if (!header) continue
     const [first, second] = header[1].split(/[/-]/).map(Number)
-    if (first > 12 && first <= 31) { dateOrder = 'DMY'; break }
-    if (second > 12 && second <= 31) { dateOrder = 'MDY'; break }
+    if (first > 12 && first <= 31) return { dateOrder: 'DMY', inferred: true, ambiguous: false }
+    if (second > 12 && second <= 31) return { dateOrder: 'MDY', inferred: true, ambiguous: false }
   }
+  return { dateOrder: null, inferred: false, ambiguous: true }
+}
+
+export function parseWhatsAppExport(content, householdId, options = {}) {
+  const lines = String(content ?? '').replace(/\r\n?/g, '\n').split('\n')
+  const detected = detectWhatsAppDateFormat(content)
+  const dateOrder = options.dateOrder === 'MDY' || options.dateOrder === 'DMY'
+    ? options.dateOrder
+    : detected.dateOrder ?? 'DMY'
   const messages = []
   let current = null
 
