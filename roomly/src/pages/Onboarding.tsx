@@ -31,7 +31,7 @@ export function OnboardingPage() {
 
   useEffect(() => {
     let active = true
-    if (mode === 'join' && /^\\d{4}$/.test(code)) {
+    if (mode === 'join' && /^\d{4}$/.test(code)) {
       householdService.previewInvite(code).then((group) => {
         if (active) { setInviteGroup(group); setSelectedMemberId('') }
       }).catch(() => { if (active) setInviteGroup(null) })
