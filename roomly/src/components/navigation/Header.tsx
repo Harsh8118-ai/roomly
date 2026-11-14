@@ -10,6 +10,8 @@ import { currentMonth, greeting, monthLabel } from '@/utils/date'
 import { firstName } from '@/utils/format'
 import { NotificationMenu } from './NotificationMenu'
 import { UserMenu } from './UserMenu'
+import { useImportActivity } from '@/store/ImportActivityProvider'
+import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
 
 const TITLES: [string, string][] = [
@@ -21,6 +23,7 @@ export function Header({ onOpenCommand }: { onOpenCommand: () => void }) {
   const { user } = useAuth()
   const { data: household } = useHousehold()
   const { openNew } = useComposer()
+  const importActivity = useImportActivity()
   const { pathname, search } = useLocation()
   const selectedMonth = new URLSearchParams(search).get('month') ?? currentMonth()
   const isHome = pathname === ROUTES.dashboard
@@ -55,7 +58,13 @@ export function Header({ onOpenCommand }: { onOpenCommand: () => void }) {
         </button>
         <IconButton label="Search" className="md:hidden" onClick={onOpenCommand}><Search size={19} /></IconButton>
         <Button className="hidden md:inline-flex" size="md" leftIcon={<Plus size={16} strokeWidth={2.5} />} onClick={openNew}>Add expense</Button>
-        <NotificationMenu />
+        <div className="hidden md:block"><NotificationMenu /></div>
+        {importActivity.active ? (
+          <Link to={ROUTES.imports} className="flex h-10 min-w-0 max-w-[116px] flex-col justify-center gap-1 rounded-lg border border-line bg-accent-soft px-2.5 md:hidden" aria-label="WhatsApp import in progress">
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold text-accent-strong"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-strong" />Importing</span>
+            <span className="h-1 w-full overflow-hidden rounded-full bg-line"><span className="block h-full w-2/5 animate-[import-progress_1.3s_ease-in-out_infinite] rounded-full bg-accent-strong" /></span>
+          </Link>
+        ) : <div className="md:hidden"><NotificationMenu /></div>}
         <UserMenu />
       </div>
     </header>
