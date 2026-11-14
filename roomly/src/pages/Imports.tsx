@@ -178,7 +178,7 @@ export function ImportsPage() {
           <button className="rounded-md p-2 text-muted transition hover:bg-surface-2" onClick={() => { setChat(null); setSenders([]); importActivity.clear() }} aria-label="Cancel import"><X size={18}/></button>
         </div>
         <div className="space-y-2 p-4 sm:p-5">
-          <p className="text-sm text-muted">Choose your name below. Roomly matches the remaining senders to existing members where possible and creates missing members automatically.</p>
+          <p className="hidden sm:flex text-sm text-muted">Choose your name below. Roomly matches the remaining senders to existing members where possible and creates missing members automatically.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {senders.map((sender) => {
               const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
