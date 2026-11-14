@@ -6,7 +6,7 @@ interface ThemeCtx { pref: ThemePref; resolved: 'light' | 'dark'; setPref: (p: T
 const Ctx = createContext<ThemeCtx | null>(null)
 
 const systemDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches
-const readPref = (): ThemePref => (localStorage.getItem(config.themeKey) as ThemePref) || 'system'
+const readPref = (): ThemePref => (localStorage.getItem(config.themeKey) as ThemePref) || 'dark'
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [pref, setPrefState] = useState<ThemePref>(readPref)
