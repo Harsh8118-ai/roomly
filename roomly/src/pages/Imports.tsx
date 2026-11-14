@@ -138,7 +138,7 @@ export function ImportsPage() {
   }
 
   return <>
-    <PageHeader title="Import WhatsApp chat" description="Turn your group chat into a shared expense ledger. Roomly detects payments and assigns each expense to its message sender." />
+    <PageHeader title="Import WhatsApp chat" description="Turn your group chat into a shared expense ledger." />
     {busy && <section className="card mb-4 overflow-hidden p-4 sm:p-5" aria-live="polite">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0"><p className="text-sm font-semibold">{importActivity.phase === 'reading' ? 'Reading your chat' : importActivity.phase === 'mapping' ? 'Preparing your import' : 'Adding expenses to Roomly'}</p><p className="mt-0.5 truncate text-xs text-muted">{importActivity.filename}</p></div>
@@ -159,12 +159,12 @@ export function ImportsPage() {
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-strong"><FileUp size={20} /></div>
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold">Upload WhatsApp export</h2>
-            <p className="mt-1 text-sm text-muted">Upload a .txt or .md export, or a .zip containing one. Roomly extracts the senders first so you can map every person before expenses are imported.</p>
+            <p className="mt-1 text-sm text-muted">Upload a .txt or .md export, or a .zip containing one.</p>
             <label className="mt-4 flex w-full cursor-pointer sm:inline-flex sm:w-auto">
               <input type="file" accept=".txt,.md,.zip,text/plain,text/markdown,application/zip" className="sr-only" disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = '' }} />
               <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-accent-strong px-4 text-sm font-semibold text-on-accent shadow-sm transition-transform active:scale-[0.98] sm:w-auto">{busy ? <RefreshCw size={16} className="animate-spin" /> : <FileArchive size={16} />}{busy ? 'Reading…' : 'Choose chat file'}</span>
             </label>
-            <p className="mt-2 text-xs text-muted">TXT · Markdown · ZIP containing TXT/Markdown · Maximum 10 MB</p>
+            <p className="mt-2 text-xs text-muted">TXT · Markdown · ZIP || Maximum 10 MB</p>
           </div>
         </div>
       </section>
@@ -191,12 +191,12 @@ export function ImportsPage() {
             })}
             <button type="button" disabled={busy} onClick={() => void startImport(null)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-dashed border-accent-strong/50 bg-accent-soft/20 p-3 text-left transition hover:border-accent-strong hover:bg-accent-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60 sm:col-span-2">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface text-accent-strong"><Users size={19}/></span>
-              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">I’m not in this chat</span><span className="mt-0.5 block text-xs text-muted">Use your Roomly profile as a separate household member</span></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">I’m not in this chat</span><span className="mt-0.5 block text-xs text-muted">Make you a separate household member</span></span>
               <ArrowRight size={17} className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent-strong"/>
             </button>
           </div>
           {busy && <div className="flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-2.5 text-sm text-accent-strong" role="status"><RefreshCw size={15} className="animate-spin"/> Importing chat and assigning expenses…</div>}
-          <p className="pt-1 text-xs text-muted">Selecting an option starts the import immediately. Every expense stays attributed to its original message sender.</p>
+          <p className="pt-1 text-xs text-muted">Selecting an option starts the import immediately.</p>
         </div>
       </section>}
       <section className="card p-4 sm:p-5">

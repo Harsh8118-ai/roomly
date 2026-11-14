@@ -31,7 +31,9 @@ export function DashboardPage() {
   return (
     <div className="space-y-5 md:space-y-7">
       <div className="flex items-center gap-2">
+        <DashboardHeader month={month} />
         <MonthSelector month={month} onChange={setMonth} />
+
 
         {/* Desktop */}
         <LinkButton
