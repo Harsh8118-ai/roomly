@@ -48,6 +48,7 @@ async function createImportedExpense({ household, user, message, memberId }) {
   // Idempotency guard: a retried import must never create a second expense
   // for an ImportedMessage, even if the request was interrupted after Expense.create.
   let expense = await Expense.findOne({ whatsappMessageId })
+  let createdNow = false
   if (!expense) {
     try {
       expense = await Expense.create({
@@ -55,6 +56,7 @@ async function createImportedExpense({ household, user, message, memberId }) {
         note: 'Imported from WhatsApp chat', createdBy: user._id, source: 'whatsapp',
         whatsappMessageId,
       })
+      createdNow = true
     } catch (error) {
       if (error?.code !== 11000) throw error
       expense = await Expense.findOne({ whatsappMessageId })
@@ -65,7 +67,7 @@ async function createImportedExpense({ household, user, message, memberId }) {
   message.senderMemberId = memberId
   message.expenseId = expense._id
   await message.save()
-  if (String(expense.createdBy) === String(user._id) && expense.createdAt && Date.now() - new Date(expense.createdAt).getTime() < 5000) {
+  if (createdNow) {
     publish(household._id, { type: 'expense.created', id: String(expense._id), by: String(user._id), source: 'whatsapp', title, amount, category })
   }
   return { expense }
