@@ -25,6 +25,14 @@ function senderDisplayName(value) {
     .replace(/\s+/g, ' ').trim().slice(0, 60)
 }
 
+function isSwappedMonthDay(existingDate, incomingDate) {
+  const oldDate = new Date(existingDate)
+  const newDate = new Date(incomingDate)
+  return oldDate.getFullYear() === newDate.getFullYear()
+    && oldDate.getMonth() + 1 === newDate.getDate()
+    && oldDate.getDate() === newDate.getMonth() + 1
+}
+
 function resolveSenderMember(household, sender) {
   const key = normalizeSender(sender)
   if (!key) return null
@@ -124,6 +132,34 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     if (req.household.isModified('members')) await req.household.save()
     const senderMemberId = member?._id ?? null
     const status = isExpense ? (senderMemberId ? 'approved' : 'pending') : 'ignored'
+    // Repair legacy records created when an ambiguous date was previously
+    // interpreted in the opposite month/day order. Match only the same sender,
+    // exact message text, year, and swapped calendar components.
+    if (isExpense) {
+      const legacy = await ImportedMessage.findOne({
+        householdId: req.household._id,
+        sender: item.sender,
+        text: item.text.slice(0, 1000),
+        status: 'approved',
+      })
+      if (legacy && isSwappedMonthDay(legacy.sentAt, item.sentAt)) {
+        const legacyExpense = legacy.expenseId
+          ? await Expense.findOne({ _id: legacy.expenseId, householdId: req.household._id })
+          : null
+        legacy.sentAt = item.sentAt
+        legacy.fingerprint = item.fingerprint
+        legacy.parsed = item.parsed
+        await legacy.save()
+        if (legacyExpense) {
+          const correctedDate = new Date(item.sentAt.getTime() + Number(item.parsed?.dayOffset ?? 0) * 86400000)
+          legacyExpense.date = correctedDate.toISOString().slice(0, 10)
+          await legacyExpense.save()
+        }
+        duplicates++
+        continue
+      }
+    }
+
     // Check the household's import ledger before attempting an insert. This also
     // protects installations where MongoDB's unique index was not present yet.
     const previouslyImported = await ImportedMessage.findOne({
