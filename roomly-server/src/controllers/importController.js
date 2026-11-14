@@ -74,12 +74,10 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
 
   if (!Array.isArray(senderMappings)) throw ApiError.invalid('Invalid sender mapping.')
   if (separateMemberName && typeof separateMemberName !== 'string') throw ApiError.invalid('Enter a valid member name.')
-  let separateMember = null
   const mappingBySender = new Map(senderMappings.map((mapping) => [normalizeSender(mapping.sender), mapping]))
   if (separateMemberName.trim()) {
     if (req.household.members.length >= MAX_MEMBERS) throw ApiError.invalid(`A household can have up to ${MAX_MEMBERS} members.`)
     req.household.members.push({ name: senderDisplayName(separateMemberName), role: 'member', status: 'active', tone: nextTone(req.household) })
-    separateMember = req.household.members[req.household.members.length - 1]
     await req.household.save()
   }
   const batch = await ChatImport.create({
