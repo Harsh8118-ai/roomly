@@ -25,7 +25,7 @@ function senderDisplayName(value) {
     .replace(/\s+/g, ' ').trim().slice(0, 60)
 }
 
-function resolveSenderMember(household, sender, currentMember) {
+function resolveSenderMember(household, sender) {
   const key = normalizeSender(sender)
   if (!key) return null
   const existing = household.members.find((member) => normalizeSender(member.name) === key)
@@ -103,7 +103,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
           req.household.members.push({ name: senderDisplayName(mapping.name), role: 'member', status: 'active', tone: nextTone(req.household) })
           member = req.household.members[req.household.members.length - 1]
         }
-      } else member = resolveSenderMember(req.household, item.sender, req.member)
+      } else member = resolveSenderMember(req.household, item.sender)
     }
     if (req.household.isModified('members')) await req.household.save()
     const senderMemberId = member?._id ?? null
