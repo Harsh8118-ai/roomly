@@ -79,6 +79,7 @@ export function ImportsPage() {
   const [senders, setSenders] = useState<string[]>([])
   const [selfSender, setSelfSender] = useState('')
   const [dateOrder, setDateOrder] = useState<'MDY' | 'DMY' | ''>('')
+  const [dateFormatInferred, setDateFormatInferred] = useState(false)
   const [separateMemberName, setSeparateMemberName] = useState('')
   const [senderChoices, setSenderChoices] = useState<Record<string, string>>({})
   const isAdmin = members.some((member) => member.id === user?.id && member.role === 'admin')
@@ -100,6 +101,7 @@ export function ImportsPage() {
       const preview = await api.post<PreviewResponse>('/imports/whatsapp/preview', { filename: parsed.filename, content: parsed.content })
       setChat(parsed)
       setDateOrder(preview.dateFormat.dateOrder ?? '')
+      setDateFormatInferred(preview.dateFormat.inferred)
       importActivity.update('mapping')
       setSenders(preview.senders)
       setSelfSender(preview.senders.some((name) => /^you$/i.test(name)) ? preview.senders.find((name) => /^you$/i.test(name))! : '')
@@ -136,7 +138,7 @@ export function ImportsPage() {
       const stats = result.import.stats
       importActivity.finish({ imported: stats.approved ?? 0, total: stats.total, duplicates: stats.duplicates })
       toast.success(`Imported ${stats.approved ?? 0} expenses. ${stats.duplicates} duplicates skipped; ${stats.unmatched ?? 0} unmatched.`)
-      setChat(null); setSenders([]); setSelfSender(''); setSeparateMemberName(''); setDateOrder('')
+      setChat(null); setSenders([]); setSelfSender(''); setSeparateMemberName(''); setDateOrder(''); setDateFormatInferred(false)
     } catch (error) {
       importActivity.clear()
       toast.error(error instanceof Error ? error.message : 'Could not import this chat.')
@@ -183,7 +185,7 @@ export function ImportsPage() {
             <option value="MDY">MM/DD/YY — Month / Day / Year</option>
             <option value="DMY">DD/MM/YY — Day / Month / Year</option>
           </select>
-          <p className="text-xs text-muted">{dateOrder ? 'Selected format will be applied consistently to every message in this export.' : 'Roomly could not determine the format automatically because all dates are ambiguous. Choose the format used by this export.'}</p>
+          <p className="text-xs text-muted">{dateOrder ? (dateFormatInferred ? 'Roomly detected this format from an unambiguous date and will apply it to the entire export.' : 'Selected format will be applied consistently to every message in this export.') : 'Roomly could not determine the format automatically because all dates are ambiguous. Choose the format used by this export.'}</p>
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-medium">Which sender are you?</label>
