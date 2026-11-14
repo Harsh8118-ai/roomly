@@ -4,6 +4,7 @@ import { User } from '../models/User.js'
 import { Expense } from '../models/Expense.js'
 import { SettlementPayment } from '../models/SettlementPayment.js'
 import { Notification } from '../models/Notification.js'
+import { ImportedMessage } from '../models/ImportedMessage.js'
 import { AVATAR_TONES } from '../constants.js'
 
 export async function uniqueInviteCode() {
@@ -23,20 +24,29 @@ export async function createHousehold(user, name) {
   await user.save()
   return household
 }
-export async function joinHousehold(user, household) {
+export async function joinHousehold(user, household, selectedMemberId) {
   const placeholder = household.members.find((m) => m.status === 'invited' && m.email && m.email === user.email)
-  if (placeholder) {
-    const oldId = placeholder._id; const { role, tone, joinedAt } = placeholder
+  const selected = selectedMemberId ? household.members.id(selectedMemberId) : placeholder
+  if (selected) {
+    const oldId = selected._id
+    const { role, tone, joinedAt, name } = selected
     household.members.pull(oldId)
-    household.members.push({ _id: user._id, name: user.name, email: user.email, role, status: 'active', tone, joinedAt })
+    household.members.push({ _id: user._id, name, email: user.email, role, status: 'active', tone, joinedAt })
     await household.save()
-    await Expense.updateMany({ householdId: household._id, paidBy: oldId }, { $set: { paidBy: user._id } })
+    if (String(oldId) !== String(user._id)) {
+      await Expense.updateMany({ householdId: household._id, paidBy: oldId }, { $set: { paidBy: user._id } })
+      await Expense.updateMany({ householdId: household._id, 'splits.memberId': oldId }, [{ $set: { splits: { $map: { input: '$splits', as: 'split', in: { $mergeObjects: ['$$split', { memberId: { $cond: [{ $eq: ['$$split.memberId', oldId] }, user._id, '$$split.memberId'] } }] } } } } }])
+      await ImportedMessage.updateMany({ householdId: household._id, senderMemberId: oldId }, { $set: { senderMemberId: user._id } })
+      // Settlement transaction IDs are derived from member IDs; clear stale acknowledgements after identity reassignment.
+      await SettlementPayment.deleteMany({ householdId: household._id })
+    }
   } else {
     household.members.push({ _id: user._id, name: user.name, email: user.email, role: 'member', status: 'active', tone: nextTone(household) })
     await household.save()
   }
   if (!user.householdIds.some((id) => id.equals(household._id))) user.householdIds.push(household._id)
-  user.currentHouseholdId = household._id; await user.save()
+  user.currentHouseholdId = household._id
+  await user.save()
   return household
 }
 export async function removeMemberFromHousehold(household, memberId) {
