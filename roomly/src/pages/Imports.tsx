@@ -101,7 +101,7 @@ export function ImportsPage() {
       const defaults: Record<string, string> = {}
       preview.senders.forEach((sender) => {
         if (/^you$/i.test(sender)) return
-        const match = members.find((member) => member.name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\\p{N}]/gu, '') === sender.normalize('NFKC').toLowerCase().replace(/[^\p{L}\\p{N}]/gu, ''))
+        const match = members.find((member) => member.name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') === sender.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))
         defaults[sender] = match?.id ?? '__new__'
       })
       setSenderChoices(defaults)
