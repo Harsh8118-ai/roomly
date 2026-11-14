@@ -94,7 +94,6 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     let member = null
     if (isExpense) {
       if (selfSender && normalizeSender(item.sender) === normalizeSender(selfSender)) member = req.member
-      else if (separateMember && /^you$/i.test(item.sender.trim())) member = separateMember
       else if (mapping?.memberId && req.household.members.id(mapping.memberId)) member = req.household.members.id(mapping.memberId)
       else if (mapping?.name) {
         const key = normalizeSender(mapping.name)
