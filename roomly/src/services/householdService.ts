@@ -5,7 +5,7 @@ export const householdService = {
   getHousehold: () => api.get<Household>('/households/current'),
   create: (name: string) => api.post<Household>('/households', { name }),
   previewInvite: (inviteCode: string) => api.get<{ id: string; name: string; members: { id: string; name: string }[] }>(`/households/invite/${inviteCode}`),
-  join: (inviteCode: string, memberId?: string) => api.post<Household>('/households/join', { inviteCode, memberId }),
+  join: (inviteCode: string, memberId?: string, joinAsNew = false) => api.post<Household>('/households/join', { inviteCode, memberId, joinAsNew }),
   rename: (name: string) => api.patch<Household>('/households/current', { name }),
   switchTo: (householdId: string) => api.put<User>('/households/current', { householdId }),
   getMembers: () => api.get<Member[]>('/households/current/members'),
