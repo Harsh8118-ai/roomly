@@ -23,7 +23,7 @@ export function OnboardingPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [inviteCode, setInviteCode] = useState('')
-  const [inviteGroup, setInviteGroup] = useState<{ id: string; name: string; members: { id: string; name: string }[] } | null>(null)
+  const [inviteGroup, setInviteGroup] = useState<{ id: string; name: string; members: { id: string; name: string; invited?: boolean }[] } | null>(null)
   const [selectedMemberId, setSelectedMemberId] = useState('')
   const inviteLink = inviteCode ? `${window.location.origin}/?join=${inviteCode}` : ''
 
@@ -74,9 +74,9 @@ export function OnboardingPage() {
           : <Input label="4-digit invite code" placeholder="0427" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))} required pattern="\d{4}" maxLength={4} />}
           {inviteGroup && <div className="rounded-lg border border-line p-3">
             <p className="text-sm font-semibold">Join {inviteGroup.name}</p>
-            <p className="mt-1 text-xs text-muted">Choose an existing identity or join as a new member.</p>
+            <p className="mt-1 text-xs text-muted">Choose your existing household identity, or join as a new member.</p>
             <label className="mt-3 flex items-center gap-2 rounded-md p-2 text-sm hover:bg-surface-2"><input type="radio" name="memberIdentity" checked={!selectedMemberId} onChange={() => setSelectedMemberId('')} /> Join as a new member ({user?.name})</label>
-            {inviteGroup.members.map((member) => <label key={member.id} className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-surface-2"><input type="radio" name="memberIdentity" checked={selectedMemberId === member.id} onChange={() => setSelectedMemberId(member.id)} /> Join as {member.name}</label>)}
+            {inviteGroup.members.map((member) => <label key={member.id} className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-surface-2"><input type="radio" name="memberIdentity" checked={selectedMemberId === member.id} onChange={() => setSelectedMemberId(member.id)} /> Join as {member.name}{member.invited ? ' (invited)' : ''}</label>)}
           </div>}
         <Button type="submit" fullWidth size="lg" loading={busy} loadingText={mode === 'create' ? 'Creating group…' : 'Joining group…'}>
           {mode === 'create' ? 'Create group' : 'Join group'}
