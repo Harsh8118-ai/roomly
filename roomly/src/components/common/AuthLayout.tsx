@@ -19,7 +19,7 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
           <h1 className="t-page">{title}</h1>
           <p className="mt-2 text-sm text-muted">{subtitle}</p>
           <div className="mt-8">{children}</div>
-          <p className="mt-8 text-center text-sm text-muted">{footer}</p>
+          {footer && <p className="mt-8 text-center text-sm text-muted">{footer}</p>}
         </div>
       </div>
       <aside className="relative hidden overflow-hidden bg-accent-soft lg:block" aria-hidden>
