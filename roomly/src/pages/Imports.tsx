@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { FileUp, RefreshCw, History, FileArchive, Check, X } from 'lucide-react'
+import { FileUp, RefreshCw, History, FileArchive, X, UserRound, Users, ArrowRight } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useMembers } from '@/hooks/queries'
 import { api } from '@/services/api/client'
@@ -78,10 +78,7 @@ export function ImportsPage() {
   const [chat, setChat] = useState<{ filename: string; content: string } | null>(null)
   const [senders, setSenders] = useState<string[]>([])
   const [selfSender, setSelfSender] = useState('')
-  const [dateOrder, setDateOrder] = useState<'MDY' | 'DMY' | ''>('')
-  const [dateFormatInferred, setDateFormatInferred] = useState(false)
   const [separateMemberName, setSeparateMemberName] = useState('')
-  const [senderChoices, setSenderChoices] = useState<Record<string, string>>({})
   const isAdmin = members.some((member) => member.id === user?.id && member.role === 'admin')
 
   const refreshHistory = async () => {
@@ -100,45 +97,44 @@ export function ImportsPage() {
       if (!parsed.content.trim()) throw new Error('The selected chat file is empty.')
       const preview = await api.post<PreviewResponse>('/imports/whatsapp/preview', { filename: parsed.filename, content: parsed.content })
       setChat(parsed)
-      setDateOrder(preview.dateFormat.dateOrder ?? '')
-      setDateFormatInferred(preview.dateFormat.inferred)
       importActivity.update('mapping')
       setSenders(preview.senders)
       setSelfSender(preview.senders.some((name) => /^you$/i.test(name)) ? preview.senders.find((name) => /^you$/i.test(name))! : '')
       setSeparateMemberName('')
-      const defaults: Record<string, string> = {}
-      preview.senders.forEach((sender) => {
-        const match = members.find((member) => member.name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '') === sender.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))
-        defaults[sender] = match?.id ?? '__new__'
-      })
-      setSenderChoices(defaults)
     } catch (error) {
       importActivity.clear()
       toast.error(error instanceof Error ? error.message : 'Could not read this chat.')
     } finally { setBusy(false) }
   }
 
-  const confirmImport = async () => {
-    if (!chat) return
-    if (!selfSender && !separateMemberName.trim()) { toast.error('Choose your sender identity or enter a separate member name.'); return }
-    if (!dateOrder) { toast.error('Choose the date format used in this WhatsApp export.'); return }
+  const startImport = async (selectedSender: string | null) => {
+    if (!chat || busy) return
+    const separateMemberName = selectedSender ? '' : user?.name?.trim() ?? ''
+    if (!selectedSender && !separateMemberName) {
+      toast.error('Your account name is missing. Update your profile before importing as a separate member.')
+      return
+    }
     setBusy(true)
     importActivity.update('importing')
     try {
-      const senderMappings: SenderMapping[] = senders.filter((sender) => sender !== selfSender).map((sender) => {
-        const choice = senderChoices[sender]
-        if (choice && choice !== '__new__') return { sender, memberId: choice }
-        return { sender, name: sender }
-      })
+      const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\\p{L}\\p{N}]/gu, '')
+      const senderMappings: SenderMapping[] = senders
+        .filter((sender) => sender !== selectedSender)
+        .map((sender) => {
+          const match = members.find((member) => normalize(member.name) === normalize(sender))
+          return match ? { sender, memberId: match.id } : { sender, name: sender }
+        })
       const result = await api.post<ImportResponse>('/imports/whatsapp', {
-        filename: chat.filename, content: chat.content, senderMappings, selfSender, separateMemberName, dateOrder,
+        filename: chat.filename, content: chat.content, senderMappings,
+        selfSender: selectedSender ?? '', separateMemberName,
       })
       await qc.invalidateQueries({ queryKey: ['hh'] })
       await refreshHistory()
       const stats = result.import.stats
       importActivity.finish({ imported: stats.approved ?? 0, total: stats.total, duplicates: stats.duplicates })
       toast.success(`Imported ${stats.approved ?? 0} expenses. ${stats.duplicates} duplicates skipped; ${stats.unmatched ?? 0} unmatched.`)
-      setChat(null); setSenders([]); setSelfSender(''); setSeparateMemberName(''); setDateOrder(''); setDateFormatInferred(false)
+      setChat(null)
+      setSenders([])
     } catch (error) {
       importActivity.clear()
       toast.error(error instanceof Error ? error.message : 'Could not import this chat.')
@@ -176,30 +172,36 @@ export function ImportsPage() {
           </div>
         </div>
       </section>
-      {chat && <section className="card mb-5 space-y-4 p-4 sm:mb-6 sm:space-y-5 sm:p-5">
-        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-accent-strong">Step 2 of 2</div><h2 className="font-semibold">Match your group members</h2><p className="mt-1 text-sm text-muted">{senders.length} senders found · {chat.filename}</p></div><button className="rounded-md p-2 text-muted hover:bg-surface-2" onClick={() => { setChat(null); importActivity.clear() }} aria-label="Cancel import"><X size={18}/></button></div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">WhatsApp date format</label>
-          <select value={dateOrder} onChange={(e) => setDateOrder(e.target.value as 'MDY' | 'DMY' | '')} className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm">
-            <option value="" disabled>Choose the date format</option>
-            <option value="MDY">MM/DD/YY — Month / Day / Year</option>
-            <option value="DMY">DD/MM/YY — Day / Month / Year</option>
-          </select>
-          <p className="text-xs text-muted">{dateOrder ? (dateFormatInferred ? 'Roomly detected this format from an unambiguous date and will apply it to the entire export.' : 'Selected format will be applied consistently to every message in this export.') : 'Roomly could not determine the format automatically because all dates are ambiguous. Choose the format used by this export.'}</p>
+      {chat && <section className="card mb-5 overflow-hidden sm:mb-6">
+        <div className="flex items-start justify-between gap-3 border-b border-line p-4 sm:p-5">
+          <div className="min-w-0">
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-accent-strong">Ready to import</div>
+            <h2 className="text-lg font-semibold">Who are you in this chat?</h2>
+            <p className="mt-1 text-sm text-muted">{senders.length} expense senders detected · {chat.filename}</p>
+          </div>
+          <button className="rounded-md p-2 text-muted transition hover:bg-surface-2" onClick={() => { setChat(null); setSenders([]); importActivity.clear() }} aria-label="Cancel import"><X size={18}/></button>
         </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Which sender are you?</label>
-          <select value={selfSender ? 'sender:'+selfSender : '__separate__'} onChange={(e) => { if (e.target.value === '__separate__') setSelfSender(''); else { setSelfSender(e.target.value.slice(7)); setSeparateMemberName('') } }} className="h-11 w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-sm">
-            <option value="__separate__">I'm not in this chat — create a separate member</option>
-            {senders.map((sender) => <option key={sender} value={'sender:'+sender}>{sender}</option>)}
-          </select>
-          {!selfSender && <input value={separateMemberName} onChange={(e) => setSeparateMemberName(e.target.value)} placeholder="Your member name" maxLength={60} className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm"/>}
+        <div className="space-y-2 p-4 sm:p-5">
+          <p className="text-sm text-muted">Choose your name below. Roomly matches the remaining senders to existing members where possible and creates missing members automatically.</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {senders.map((sender) => {
+              const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\\p{L}\\p{N}]/gu, '')
+              const match = members.find((member) => normalize(member.name) === normalize(sender))
+              return <button key={sender} type="button" disabled={busy} onClick={() => void startImport(sender)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-accent-strong/60 hover:bg-accent-soft/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-strong"><UserRound size={19}/></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{sender}</span><span className="mt-0.5 block text-xs text-muted">{match ? `Matches Roomly member · ${match.name}` : 'Use this sender as your identity'}</span></span>
+                <ArrowRight size={17} className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent-strong"/>
+              </button>
+            })}
+            <button type="button" disabled={busy} onClick={() => void startImport(null)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-dashed border-accent-strong/50 bg-accent-soft/20 p-3 text-left transition hover:border-accent-strong hover:bg-accent-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60 sm:col-span-2">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface text-accent-strong"><Users size={19}/></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">I’m not in this chat</span><span className="mt-0.5 block text-xs text-muted">Use your Roomly profile as a separate household member</span></span>
+              <ArrowRight size={17} className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent-strong"/>
+            </button>
+          </div>
+          {busy && <div className="flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-2.5 text-sm text-accent-strong" role="status"><RefreshCw size={15} className="animate-spin"/> Importing chat and assigning expenses…</div>}
+          <p className="pt-1 text-xs text-muted">Selecting an option starts the import immediately. Every expense stays attributed to its original message sender.</p>
         </div>
-        <div className="space-y-3"><div><h3 className="text-sm font-semibold">Match everyone else</h3><p className="mt-0.5 text-xs text-muted">Connect chat names to existing Roomly members, or create new members.</p></div>
-          {senders.filter((sender) => sender !== selfSender).map((sender) => <div key={sender} className="grid gap-2 rounded-lg border border-line bg-surface-2/50 p-3 sm:grid-cols-[1fr_1fr] sm:items-center"><span className="text-sm font-medium">{sender}</span><select value={senderChoices[sender] ?? '__new__'} onChange={(e) => setSenderChoices((old) => ({...old,[sender]:e.target.value}))} className="h-11 w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-sm"><option value="__new__">Create as “{sender}”</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></div>)}
-        </div>
-        <p className="text-xs text-muted">Each expense will be attributed to the sender you map. Roomly will not ask you to approve or edit individual expenses.</p>
-        <button disabled={busy} onClick={() => void confirmImport()} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-accent-strong px-4 text-sm font-semibold text-on-accent shadow-sm transition-transform active:scale-[0.99] disabled:opacity-50 sm:w-auto">{busy ? <RefreshCw size={16} className="animate-spin"/> : <Check size={16}/>} {busy ? 'Importing…' : 'Confirm and import expenses'}</button>
       </section>}
       <section className="card p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2"><History size={18} /><h2 className="font-semibold">Import history</h2><span className="text-xs text-muted">({history.length})</span></div>
