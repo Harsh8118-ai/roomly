@@ -1,7 +1,7 @@
 import { ChatImport } from '../models/ChatImport.js'
 import { ImportedMessage } from '../models/ImportedMessage.js'
 import { Expense } from '../models/Expense.js'
-import { parseWhatsAppExport } from '../services/whatsapp/exportParser.js'
+import { parseWhatsAppExport, detectWhatsAppDateFormat } from '../services/whatsapp/exportParser.js'
 import { CATEGORY_IDS, MAX_MEMBERS } from '../constants.js'
 import { nextTone } from '../services/householdService.js'
 import { ApiError } from '../utils/ApiError.js'
@@ -79,17 +79,18 @@ export const previewWhatsAppExport = asyncHandler(async (req, res) => {
   if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
   const parsed = parseWhatsAppExport(content, req.household._id)
   const senders = [...new Set(parsed.filter((item) => item.parsed.kind === 'expense').map((item) => item.sender))]
-  res.json({ senders, candidates: parsed.filter((item) => item.parsed.kind === 'expense').length })
+  res.json({ senders, candidates: parsed.filter((item) => item.parsed.kind === 'expense').length, dateFormat: detectWhatsAppDateFormat(content) })
 })
 
 export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
-  const { content, filename = 'WhatsApp Chat.txt', senderMappings = [], selfSender = '', separateMemberName = '' } = req.body ?? {}
+  const { content, filename = 'WhatsApp Chat.txt', senderMappings = [], selfSender = '', separateMemberName = '', dateOrder } = req.body ?? {}
   if (typeof content !== 'string' || !content.trim()) throw ApiError.invalid('Upload a non-empty WhatsApp .txt or .md chat export.')
   if (typeof filename !== 'string' || !/\.(txt|md)$/i.test(filename)) throw ApiError.invalid('Please upload a WhatsApp .txt or .md export.')
   if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
 
   if (!Array.isArray(senderMappings) || senderMappings.some((item) => !item || typeof item.sender !== 'string')) throw ApiError.invalid('Invalid sender mapping.')
   if (typeof separateMemberName !== 'string') throw ApiError.invalid('Enter a valid member name.')
+  if (dateOrder !== 'MDY' && dateOrder !== 'DMY') throw ApiError.invalid('Choose the date format used in this WhatsApp export.')
   const mappingBySender = new Map(senderMappings.map((mapping) => [normalizeSender(mapping.sender), mapping]))
   if (separateMemberName.trim()) {
     const separateName = senderDisplayName(separateMemberName)
@@ -102,7 +103,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
     status: 'completed',
   })
-  const parsedMessages = parseWhatsAppExport(content, req.household._id)
+  const parsedMessages = parseWhatsAppExport(content, req.household._id, { dateOrder })
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
   for (const item of parsedMessages) {
     const isExpense = item.parsed.kind === 'expense'
