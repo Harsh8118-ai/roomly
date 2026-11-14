@@ -35,6 +35,16 @@ export function fingerprintMessage(householdId, sender, sentAt, text) {
 
 export function parseWhatsAppExport(content, householdId) {
   const lines = String(content ?? '').replace(/\r\n?/g, '\n').split('\n')
+  // Infer the export's date convention from an unambiguous date and apply it
+  // consistently to ambiguous dates throughout the same file.
+  let dateOrder = 'DMY'
+  for (const line of lines) {
+    const header = HEADER_PATTERNS.map((pattern) => pattern.exec(line)).find(Boolean)
+    if (!header) continue
+    const [first, second] = header[1].split(/[/-]/).map(Number)
+    if (first > 12 && first <= 31) { dateOrder = 'DMY'; break }
+    if (second > 12 && second <= 31) { dateOrder = 'MDY'; break }
+  }
   const messages = []
   let current = null
 
