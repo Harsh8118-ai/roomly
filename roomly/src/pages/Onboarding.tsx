@@ -23,9 +23,21 @@ export function OnboardingPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [inviteCode, setInviteCode] = useState('')
+  const [inviteGroup, setInviteGroup] = useState<{ id: string; name: string; members: { id: string; name: string }[] } | null>(null)
+  const [selectedMemberId, setSelectedMemberId] = useState('')
   const inviteLink = inviteCode ? `${window.location.origin}/?join=${inviteCode}` : ''
 
   useEffect(() => { if (params.get('join')) { setMode('join'); setCode(params.get('join')!.replace(/\D/g, '').slice(0, 4)) } }, [params])
+
+  useEffect(() => {
+    let active = true
+    if (mode === 'join' && /^\\d{4}$/.test(code)) {
+      householdService.previewInvite(code).then((group) => {
+        if (active) { setInviteGroup(group); setSelectedMemberId('') }
+      }).catch(() => { if (active) setInviteGroup(null) })
+    } else setInviteGroup(null)
+    return () => { active = false }
+  }, [mode, code])
 
   const refreshUser = async () => { const updated = await authService.getCurrentUser(); setUser(updated) }
   const submit = async (event: React.FormEvent) => {
@@ -33,7 +45,7 @@ export function OnboardingPage() {
     try {
       const household = mode === 'create'
         ? await householdService.create(name.trim())
-        : await householdService.join(code.trim())
+        : await householdService.join(code.trim(), selectedMemberId || undefined)
       setInviteCode(household.inviteCode)
       await refreshUser()
       toast.success(mode === 'create' ? 'Your group is ready' : 'You joined the group')
@@ -60,6 +72,12 @@ export function OnboardingPage() {
         {mode === 'create'
           ? <Input label="Group name" placeholder="Flat 302" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={40} />
           : <Input label="4-digit invite code" placeholder="0427" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))} required pattern="\d{4}" maxLength={4} />}
+          {inviteGroup && <div className="rounded-lg border border-line p-3">
+            <p className="text-sm font-semibold">Join {inviteGroup.name}</p>
+            <p className="mt-1 text-xs text-muted">Choose an existing identity or join as a new member.</p>
+            <label className="mt-3 flex items-center gap-2 rounded-md p-2 text-sm hover:bg-surface-2"><input type="radio" name="memberIdentity" checked={!selectedMemberId} onChange={() => setSelectedMemberId('')} /> Join as a new member ({user?.name})</label>
+            {inviteGroup.members.map((member) => <label key={member.id} className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-surface-2"><input type="radio" name="memberIdentity" checked={selectedMemberId === member.id} onChange={() => setSelectedMemberId(member.id)} /> Join as {member.name}</label>)}
+          </div>}
         <Button type="submit" fullWidth size="lg" loading={busy} loadingText={mode === 'create' ? 'Creating group…' : 'Joining group…'}>
           {mode === 'create' ? 'Create group' : 'Join group'}
         </Button>
