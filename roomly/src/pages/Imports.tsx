@@ -113,7 +113,7 @@ export function ImportsPage() {
     setBusy(true)
     importActivity.update('importing')
     try {
-      const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\\p{L}\\p{N}]/gu, '')
+      const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
       const senderMappings: SenderMapping[] = senders
         .filter((sender) => sender !== selectedSender)
         .map((sender) => {
@@ -181,7 +181,7 @@ export function ImportsPage() {
           <p className="text-sm text-muted">Choose your name below. Roomly matches the remaining senders to existing members where possible and creates missing members automatically.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {senders.map((sender) => {
-              const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\\p{L}\\p{N}]/gu, '')
+              const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
               const match = members.find((member) => normalize(member.name) === normalize(sender))
               return <button key={sender} type="button" disabled={busy} onClick={() => void startImport(sender)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-accent-strong/60 hover:bg-accent-soft/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-strong"><UserRound size={19}/></span>
