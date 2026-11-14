@@ -1,6 +1,6 @@
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { FileUp } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { LinkButton } from '@/components/ui/Button'
 import { ROUTES } from '@/constants/routes'
 import { SummaryGrid } from '@/components/dashboard/SummaryGrid'
 import { MonthSelector } from '@/components/common/MonthSelector'
@@ -29,7 +29,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5 md:space-y-7">
-      <div className="flex flex-wrap items-center justify-between gap-3"><DashboardHeader month={month} /><div className="flex items-center gap-2"><MonthSelector month={month} onChange={setMonth} /><Button asChild size="md" leftIcon={<FileUp size={16} />}><Link to={ROUTES.imports}>Import WhatsApp chats</Link></Button></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><DashboardHeader month={month} /><div className="flex items-center gap-2"><MonthSelector month={month} onChange={setMonth} /><LinkButton to={ROUTES.imports} size="md" leftIcon={<FileUp size={16} />}>Import WhatsApp chats</LinkButton></div></div>
       <SummaryGrid month={month} summary={summary.data} settlement={settlement.data} userId={user.id} previousTotal={previous.data?.total} loading={loading} />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)] md:gap-6">
         <RecentExpenses userId={user.id} month={month} />
