@@ -62,4 +62,4 @@ export const expenseSchema = z.object({
   note: z.string().max(240, 'Keep notes under 240 characters').optional(),
   receiptUrl: z.string().optional(),
 }).refine((v) => v.splitType !== 'custom' || v.splits.reduce((sum, split) => sum + split.amount, 0) === Math.round(Number(v.amount.replace(/,/g, ''))), { path: ['splits'], message: 'Split amounts must add up to the expense total.' })
-export type ExpenseFormValues = z.infer<typeof expenseSchema>
+export type ExpenseFormValues = z.input<typeof expenseSchema>
