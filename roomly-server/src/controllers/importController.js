@@ -26,7 +26,6 @@ function senderDisplayName(value) {
 }
 
 function resolveSenderMember(household, sender, currentMember) {
-  if (/^you$/i.test(String(sender).trim())) return currentMember
   const key = normalizeSender(sender)
   if (!key) return null
   const existing = household.members.find((member) => normalizeSender(member.name) === key)
@@ -94,8 +93,8 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     const mapping = mappingBySender.get(normalizeSender(item.sender))
     let member = null
     if (isExpense) {
-      if (/^you$/i.test(item.sender.trim())) member = separateMember ?? req.member
-      else if (normalizeSender(item.sender) === normalizeSender(selfSender)) member = req.member
+      if (selfSender && normalizeSender(item.sender) === normalizeSender(selfSender)) member = req.member
+      else if (separateMember && /^you$/i.test(item.sender.trim())) member = separateMember
       else if (mapping?.memberId && req.household.members.id(mapping.memberId)) member = req.household.members.id(mapping.memberId)
       else if (mapping?.name) {
         const key = normalizeSender(mapping.name)
