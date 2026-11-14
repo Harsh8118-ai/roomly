@@ -35,7 +35,7 @@ test('infers month-first dates across the entire export when a day exceeds 12', 
     '[11/13/26, 8:29:22 PM] Biro 🖤: 120 dinner',
     '[11/13/26, 8:59:26 PM] You: 100 breakfast',
     '[11/13/26, 9:20:21 PM] Biro 🖤: 20 roll',
-  ].join('\\n'), 'house-1')
+  ].join('\n'), 'house-1')
   assert.equal(parsed.length, 4)
   assert.equal(parsed[0].sentAt.getMonth(), 10)
   assert.equal(parsed[0].sentAt.getDate(), 12)
