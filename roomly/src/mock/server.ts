@@ -54,6 +54,8 @@ const monthExpenses = (h: Household, month: MonthKey) => getDb().expenses.filter
 const isClosed = (h: Household, month: MonthKey) => getDb().closedMonths.some((c) => c.householdId === h.id && c.month === month)
 
 function validateExpense(h: Household, body: Partial<ExpenseInput>): ExpenseInput {
+  const splitType = body.splitType ?? 'equal'
+  const splits = body.splits ?? []
   if (!body.title?.trim()) throw new ApiError(422, 'Add a short description.')
   if (!(Number(body.amount) > 0)) throw new ApiError(422, 'Amount must be more than ₹0.')
   if (!CATEGORY_MAP[body.category as CategoryId]) throw new ApiError(422, 'Pick a category.')
