@@ -16,8 +16,8 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
       <div className="flex flex-col px-5 py-6 sm:px-10">
         <Link to={ROUTES.landing} aria-label="Roomly home" className="w-fit"><Logo /></Link>
         <div className="mx-auto flex w-full max-w-[22rem] flex-1 flex-col justify-center py-10">
-          <h1 className="t-page">{title}</h1>
-          <p className="mt-2 text-sm text-muted">{subtitle}</p>
+          <h1 className="t-page text-center">{title}</h1>
+          <p className="mt-2 text-sm text-muted text-center">{subtitle}</p>
           <div className="mt-8">{children}</div>
           {footer && <p className="mt-8 text-center text-sm text-muted">{footer}</p>}
         </div>
