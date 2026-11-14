@@ -24,9 +24,9 @@ export async function createHousehold(user, name) {
   await user.save()
   return household
 }
-export async function joinHousehold(user, household, selectedMemberId) {
+export async function joinHousehold(user, household, selectedMemberId, joinAsNew = false) {
   const placeholder = household.members.find((m) => m.status === 'invited' && m.email && m.email === user.email)
-  const selected = selectedMemberId ? household.members.id(selectedMemberId) : placeholder
+  const selected = selectedMemberId ? household.members.id(selectedMemberId) : (joinAsNew ? null : placeholder)
   if (selected) {
     const oldId = selected._id
     const { role, tone, joinedAt, name } = selected
