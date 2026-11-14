@@ -58,12 +58,29 @@ async function createImportedExpense({ household, user, message, memberId }) {
   return { expense }
 }
 
+export const previewWhatsAppExport = asyncHandler(async (req, res) => {
+  const { content } = req.body ?? {}
+  if (typeof content !== 'string' || !content.trim()) throw ApiError.invalid('Upload a non-empty WhatsApp chat export.')
+  if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
+  const parsed = parseWhatsAppExport(content, req.household._id)
+  const senders = [...new Set(parsed.filter((item) => item.parsed.kind === 'expense').map((item) => item.sender))]
+  res.json({ senders, candidates: parsed.filter((item) => item.parsed.kind === 'expense').length })
+})
+
 export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
-  const { content, filename = 'WhatsApp Chat.txt' } = req.body ?? {}
+  const { content, filename = 'WhatsApp Chat.txt', senderMappings = [], selfSender = '', separateMemberName = '' } = req.body ?? {}
   if (typeof content !== 'string' || !content.trim()) throw ApiError.invalid('Upload a non-empty WhatsApp .txt or .md chat export.')
   if (typeof filename !== 'string' || !/\.(txt|md)$/i.test(filename)) throw ApiError.invalid('Please upload a WhatsApp .txt or .md export.')
   if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
 
+  if (!Array.isArray(senderMappings)) throw ApiError.invalid('Invalid sender mapping.')
+  if (separateMemberName && typeof separateMemberName !== 'string') throw ApiError.invalid('Enter a valid member name.')
+  const mappingBySender = new Map(senderMappings.map((mapping) => [normalizeSender(mapping.sender), mapping]))
+  if (separateMemberName.trim()) {
+    if (req.household.members.length >= MAX_MEMBERS) throw ApiError.invalid(`A household can have up to ${MAX_MEMBERS} members.`)
+    req.household.members.push({ name: senderDisplayName(separateMemberName), role: 'member', status: 'active', tone: nextTone(req.household) })
+    await req.household.save()
+  }
   const batch = await ChatImport.create({
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
     status: 'completed',
@@ -72,7 +89,20 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
   for (const item of parsedMessages) {
     const isExpense = item.parsed.kind === 'expense'
-    const member = isExpense ? resolveSenderMember(req.household, item.sender, req.member) : null
+    const mapping = mappingBySender.get(normalizeSender(item.sender))
+    let member = null
+    if (isExpense) {
+      if (/^you$/i.test(item.sender.trim()) || normalizeSender(item.sender) === normalizeSender(selfSender)) member = req.member
+      else if (mapping?.memberId && req.household.members.id(mapping.memberId)) member = req.household.members.id(mapping.memberId)
+      else if (mapping?.name) {
+        const key = normalizeSender(mapping.name)
+        member = req.household.members.find((m) => normalizeSender(m.name) === key)
+        if (!member && req.household.members.length < MAX_MEMBERS) {
+          req.household.members.push({ name: senderDisplayName(mapping.name), role: 'member', status: 'active', tone: nextTone(req.household) })
+          member = req.household.members[req.household.members.length - 1]
+        }
+      } else member = resolveSenderMember(req.household, item.sender, req.member)
+    }
     if (req.household.isModified('members')) await req.household.save()
     const senderMemberId = member?._id ?? null
     const status = isExpense ? (senderMemberId ? 'approved' : 'pending') : 'ignored'
