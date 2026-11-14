@@ -61,7 +61,7 @@ export function Header({ onOpenCommand }: { onOpenCommand: () => void }) {
         <div className="hidden md:block"><NotificationMenu /></div>
         {importActivity.active ? (
           <Link to={ROUTES.imports} className="flex h-10 min-w-0 max-w-[116px] flex-col justify-center gap-1 rounded-lg border border-line bg-accent-soft px-2.5 md:hidden" aria-label="WhatsApp import in progress">
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold text-accent-strong"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-strong" />Importing</span>
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold text-accent-strong"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-strong" />{importActivity.phase === "mapping" ? "Review" : importActivity.phase === "reading" ? "Reading" : "Importing"}</span>
             <span className="h-1 w-full overflow-hidden rounded-full bg-line"><span className="block h-full w-2/5 animate-[import-progress_1.3s_ease-in-out_infinite] rounded-full bg-accent-strong" /></span>
           </Link>
         ) : <div className="md:hidden"><NotificationMenu /></div>}
