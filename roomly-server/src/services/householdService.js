@@ -37,8 +37,12 @@ export async function joinHousehold(user, household, selectedMemberId, joinAsNew
       await Expense.updateMany({ householdId: household._id, paidBy: oldId }, { $set: { paidBy: user._id } })
       await Expense.updateMany({ householdId: household._id, 'splits.memberId': oldId }, [{ $set: { splits: { $map: { input: '$splits', as: 'split', in: { $mergeObjects: ['$$split', { memberId: { $cond: [{ $eq: ['$$split.memberId', oldId] }, user._id, '$$split.memberId'] } }] } } } } }])
       await ImportedMessage.updateMany({ householdId: household._id, senderMemberId: oldId }, { $set: { senderMemberId: user._id } })
-      // Settlement transaction IDs are derived from member IDs; clear stale acknowledgements after identity reassignment.
-      await SettlementPayment.deleteMany({ householdId: household._id })
+      // Settlement transaction IDs are derived from member IDs; migrate them to preserve recorded payments.
+      const payments = await SettlementPayment.find({ householdId: household._id })
+      for (const payment of payments) {
+        payment.txId = payment.txId.split(String(oldId)).join(String(user._id))
+        await payment.save()
+      }
     }
   } else {
     household.members.push({ _id: user._id, name: user.name, email: user.email, role: 'member', status: 'active', tone: nextTone(household) })
