@@ -27,3 +27,18 @@ test('fingerprints are stable across whitespace and case normalization', () => {
   )
   assert.notEqual(fingerprintMessage('h1', 'Aman', date, 'Groceries 450'), fingerprintMessage('h2', 'Aman', date, 'Groceries 450'))
 })
+
+
+test('infers month-first dates across the entire export when a day exceeds 12', () => {
+  const parsed = parseWhatsAppExport([
+    '[11/12/26, 11:29:29 PM] Biro 🖤: 549-surf and all',
+    '[11/13/26, 8:29:22 PM] Biro 🖤: 120 dinner',
+    '[11/13/26, 8:59:26 PM] You: 100 breakfast',
+    '[11/13/26, 9:20:21 PM] Biro 🖤: 20 roll',
+  ].join('\\n'), 'house-1')
+  assert.equal(parsed.length, 4)
+  assert.equal(parsed[0].sentAt.getMonth(), 10)
+  assert.equal(parsed[0].sentAt.getDate(), 12)
+  assert.deepEqual(parsed.slice(1).map((item) => item.sentAt.getDate()), [13, 13, 13])
+  assert.deepEqual(parsed.slice(1).map((item) => item.parsed.amount), [120, 100, 20])
+})
