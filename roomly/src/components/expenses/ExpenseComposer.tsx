@@ -40,7 +40,7 @@ export function ExpenseComposer() {
     amount: '', title: '', category: '' as CategoryId, paidBy: user?.id ?? '', date: todayISO(), note: '', receiptUrl: undefined, splitType: 'equal', splits: [],
   }), [editing, user?.id])
 
-  const { register, handleSubmit, control, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm<ExpenseFormValues>({
+  const { register, handleSubmit, control, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm<ExpenseFormValues, unknown, z.output<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema), defaultValues: defaults, mode: 'onSubmit', reValidateMode: 'onChange',
   })
 
