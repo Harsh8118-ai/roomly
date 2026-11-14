@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { FileUp, RefreshCw, History, FileArchive } from 'lucide-react'
+import { FileUp, RefreshCw, History, FileArchive, Check, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useMembers } from '@/hooks/queries'
 import { api } from '@/services/api/client'
@@ -9,6 +9,8 @@ import { useToast } from '@/store/ToastProvider'
 
 type ImportStats = { total: number; newMessages: number; duplicates: number; candidates: number; ignored: number; approved?: number; rejected?: number; unmatched?: number }
 type ImportRecord = { id: string; filename: string; status: 'review' | 'completed'; stats: ImportStats; createdAt: string }
+type PreviewResponse = { senders: string[]; candidates: number }
+type SenderMapping = { sender: string; memberId?: string; name?: string }
 type ImportResponse = {
   import: { id: string; filename: string; stats: ImportStats }
 }
@@ -71,6 +73,11 @@ export function ImportsPage() {
   const qc = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [history, setHistory] = useState<ImportRecord[]>([])
+  const [chat, setChat] = useState<{ filename: string; content: string } | null>(null)
+  const [senders, setSenders] = useState<string[]>([])
+  const [selfSender, setSelfSender] = useState('')
+  const [separateMemberName, setSeparateMemberName] = useState('')
+  const [senderChoices, setSenderChoices] = useState<Record<string, string>>({})
   const isAdmin = members.some((member) => member.id === user?.id && member.role === 'admin')
 
   const refreshHistory = async () => {
@@ -84,13 +91,43 @@ export function ImportsPage() {
     if (file.size > 10 * 1024 * 1024) { toast.error('The maximum upload size is 10 MB.'); return }
     setBusy(true)
     try {
-      const chat = await readChatFile(file)
-      if (!chat.content.trim()) throw new Error('The selected chat file is empty.')
-      const result = await api.post<ImportResponse>('/imports/whatsapp', { filename: chat.filename, content: chat.content })
+      const parsed = await readChatFile(file)
+      if (!parsed.content.trim()) throw new Error('The selected chat file is empty.')
+      const preview = await api.post<PreviewResponse>('/imports/whatsapp/preview', { filename: parsed.filename, content: parsed.content })
+      setChat(parsed)
+      setSenders(preview.senders)
+      setSelfSender(preview.senders.some((name) => /^you$/i.test(name)) ? preview.senders.find((name) => /^you$/i.test(name))! : '')
+      setSeparateMemberName('')
+      const defaults: Record<string, string> = {}
+      preview.senders.forEach((sender) => {
+        if (/^you$/i.test(sender)) return
+        const match = members.find((member) => member.name.normalize('NFKC').toLowerCase().replace(/[^\\p{L}\\p{N}]/gu, '') === sender.normalize('NFKC').toLowerCase().replace(/[^\\p{L}\\p{N}]/gu, ''))
+        defaults[sender] = match?.id ?? '__new__'
+      })
+      setSenderChoices(defaults)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not read this chat.')
+    } finally { setBusy(false) }
+  }
+
+  const confirmImport = async () => {
+    if (!chat) return
+    if (!selfSender && !separateMemberName.trim()) { toast.error('Choose your sender identity or enter a separate member name.'); return }
+    setBusy(true)
+    try {
+      const senderMappings: SenderMapping[] = senders.filter((sender) => sender !== selfSender && !/^you$/i.test(sender)).map((sender) => {
+        const choice = senderChoices[sender]
+        if (choice && choice !== '__new__') return { sender, memberId: choice }
+        return { sender, name: sender }
+      })
+      const result = await api.post<ImportResponse>('/imports/whatsapp', {
+        filename: chat.filename, content: chat.content, senderMappings, selfSender, separateMemberName,
+      })
       await qc.invalidateQueries({ queryKey: ['hh'] })
       await refreshHistory()
       const stats = result.import.stats
-      toast.success(`Imported ${stats.approved ?? 0} expenses. ${stats.duplicates} duplicates skipped; ${stats.unmatched ?? 0} sender/month issues need attention in history.`)
+      toast.success(`Imported ${stats.approved ?? 0} expenses. ${stats.duplicates} duplicates skipped; ${stats.unmatched ?? 0} unmatched.`)
+      setChat(null); setSenders([]); setSelfSender(''); setSeparateMemberName('')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not import this chat.')
     } finally { setBusy(false) }
@@ -104,15 +141,31 @@ export function ImportsPage() {
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-strong"><FileUp size={20} /></div>
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold">Upload WhatsApp export</h2>
-            <p className="mt-1 text-sm text-muted">Upload a .txt or .md export, or a .zip containing one. Roomly automatically creates expenses and assigns each payer using the WhatsApp sender name. New sender names are added as household members when needed. No approval or editing step.</p>
+            <p className="mt-1 text-sm text-muted">Upload a .txt or .md export, or a .zip containing one. Roomly extracts the senders first so you can map every person before expenses are imported.</p>
             <label className="mt-4 inline-flex cursor-pointer">
               <input type="file" accept=".txt,.md,.zip,text/plain,text/markdown,application/zip" className="sr-only" disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.currentTarget.value = '' }} />
-              <span className="inline-flex h-10 items-center gap-2 rounded-md bg-accent-strong px-4 text-sm font-semibold text-on-accent">{busy ? <RefreshCw size={16} className="animate-spin" /> : <FileArchive size={16} />}{busy ? 'Importing…' : 'Choose chat file'}</span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-md bg-accent-strong px-4 text-sm font-semibold text-on-accent">{busy ? <RefreshCw size={16} className="animate-spin" /> : <FileArchive size={16} />}{busy ? 'Reading…' : 'Choose chat file'}</span>
             </label>
             <p className="mt-2 text-xs text-muted">TXT · Markdown · ZIP containing TXT/Markdown · Maximum 10 MB</p>
           </div>
         </div>
       </section>
+      {chat && <section className="card mb-6 space-y-4 p-5">
+        <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Identify chat members</h2><p className="mt-1 text-sm text-muted">{senders.length} expense senders detected in {chat.filename}</p></div><button className="rounded-md p-2 text-muted hover:bg-surface-2" onClick={() => setChat(null)} aria-label="Cancel import"><X size={18}/></button></div>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">Which sender are you?</label>
+          <select value={selfSender ? 'sender:'+selfSender : '__separate__'} onChange={(e) => { if (e.target.value === '__separate__') setSelfSender(''); else { setSelfSender(e.target.value.slice(7)); setSeparateMemberName('') } }} className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm">
+            <option value="__separate__">I'm not in this chat — create a separate member</option>
+            {senders.map((sender) => <option key={sender} value={'sender:'+sender}>{sender}</option>)}
+          </select>
+          {!selfSender && <input value={separateMemberName} onChange={(e) => setSeparateMemberName(e.target.value)} placeholder="Your member name" maxLength={60} className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm"/>}
+        </div>
+        <div className="space-y-3"><h3 className="text-sm font-semibold">Map other senders</h3>
+          {senders.filter((sender) => sender !== selfSender && !/^you$/i.test(sender)).map((sender) => <div key={sender} className="grid gap-2 sm:grid-cols-[1fr_1fr] sm:items-center"><span className="text-sm">{sender}</span><select value={senderChoices[sender] ?? '__new__'} onChange={(e) => setSenderChoices((old) => ({...old,[sender]:e.target.value}))} className="h-10 rounded-md border border-line bg-surface px-3 text-sm"><option value="__new__">Create as “{sender}”</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></div>)}
+        </div>
+        <p className="text-xs text-muted">Each expense will be attributed to the sender you map. Roomly will not ask you to approve or edit individual expenses.</p>
+        <button disabled={busy} onClick={() => void confirmImport()} className="inline-flex h-10 items-center gap-2 rounded-md bg-accent-strong px-4 text-sm font-semibold text-on-accent disabled:opacity-50">{busy ? <RefreshCw size={16} className="animate-spin"/> : <Check size={16}/>} {busy ? 'Importing…' : 'Confirm and import expenses'}</button>
+      </section>}
       <section className="card p-5">
         <div className="mb-4 flex items-center gap-2"><History size={18} /><h2 className="font-semibold">Import history</h2><span className="text-xs text-muted">({history.length})</span></div>
         {history.length === 0 ? <p className="py-5 text-center text-sm text-muted">No chat imports yet. Each upload will be recorded here.</p> : <div className="divide-y divide-line">
