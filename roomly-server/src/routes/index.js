@@ -61,6 +61,7 @@ router.post('/shares', ...inHousehold, requireAdmin, shares.createShare)
 router.get('/shares', ...inHousehold, requireAdmin, shares.listShares)
 router.delete('/shares/:id', ...inHousehold, requireAdmin, shares.revokeShare)
 
+router.post('/imports/whatsapp/preview', ...inHousehold, requireAdmin, imports.previewWhatsAppExport)
 router.post('/imports/whatsapp', ...inHousehold, requireAdmin, imports.uploadWhatsAppExport)
 router.get('/imports', ...inHousehold, imports.listImports)
 
