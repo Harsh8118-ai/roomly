@@ -172,3 +172,15 @@
 .recharts-wrapper *:focus { outline: none; }
 
 @keyframes story-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@keyframes import-progress {
+  0% { transform: translateX(-120%); }
+  50% { transform: translateX(90%); }
+  100% { transform: translateX(260%); }
+}
+
+@media (max-width: 767px) {
+  button, a, select, input, textarea { touch-action: manipulation; }
+  select, input, textarea { min-height: 44px; }
+  .card { border-radius: 1rem; }
+}
