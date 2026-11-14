@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { User } from '../models/User.js'
 import { Household } from '../models/Household.js'
 import { ApiError } from '../utils/ApiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -21,7 +22,9 @@ export const invitePreview = asyncHandler(async (req, res) => {
   const code = String(req.params.inviteCode ?? '').toUpperCase()
   const household = await Household.findOne({ inviteCode: code })
   if (!household) throw ApiError.notFound('That invite link does not match a household.')
-  res.json({ id: String(household._id), name: household.name, members: household.members.filter((m) => m.status === 'active').map((m) => ({ id: String(m._id), name: m.name })) })
+  const linked = await User.find({ _id: { $in: household.members.map((m) => m._id) } }).select('_id').lean()
+  const claimed = new Set(linked.map((user) => String(user._id)))
+  res.json({ id: String(household._id), name: household.name, members: household.members.filter((m) => m.status === 'active' && !claimed.has(String(m._id))).map((m) => ({ id: String(m._id), name: m.name })) })
 })
 
 export const join = asyncHandler(async (req, res) => {
@@ -29,6 +32,7 @@ export const join = asyncHandler(async (req, res) => {
   if (!household) throw ApiError.notFound('That invite code doesn’t match any household.')
   if (household.members.id(req.user._id)) throw ApiError.conflict('You’re already in this household.')
   if (req.body.memberId && !household.members.id(req.body.memberId)) throw ApiError.notFound('That household member is no longer available.')
+  if (req.body.memberId && await User.exists({ _id: req.body.memberId })) throw ApiError.conflict('That member identity is already linked to an account.')
   if (household.members.length >= MAX_MEMBERS) throw ApiError.invalid(`A household can have up to ${MAX_MEMBERS} members.`)
   res.json(publicHousehold(await joinHousehold(req.user, household, req.body.memberId)))
 })
