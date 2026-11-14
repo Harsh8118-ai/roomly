@@ -86,7 +86,7 @@ export const previewWhatsAppExport = asyncHandler(async (req, res) => {
   if (typeof content !== 'string' || !content.trim()) throw ApiError.invalid('Upload a non-empty WhatsApp chat export.')
   if (content.length > MAX_EXPORT_CHARS) throw ApiError.invalid('This export is too large. The maximum supported size is 10 MB.')
   const parsed = parseWhatsAppExport(content, req.household._id)
-  const senders = [...new Set(parsed.filter((item) => item.parsed.kind === 'expense').map((item) => item.sender))]
+  const senders = [...new Set(parsed.map((item) => item.sender).filter((sender) => sender && sender.trim() && sender.trim() !== '-'))]
   res.json({ senders, candidates: parsed.filter((item) => item.parsed.kind === 'expense').length, dateFormat: detectWhatsAppDateFormat(content) })
 })
 
@@ -103,9 +103,12 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   if (separateMemberName.trim()) {
     const separateName = senderDisplayName(separateMemberName)
     if (!separateName || !/\p{L}/u.test(separateName)) throw ApiError.invalid('Enter a valid member name.')
-    if (req.household.members.length >= MAX_MEMBERS) throw ApiError.invalid(`A household can have up to ${MAX_MEMBERS} members.`)
-    req.household.members.push({ name: separateName, role: 'member', status: 'active', tone: nextTone(req.household) })
-    await req.household.save()
+    const existingSeparateMember = req.household.members.find((member) => normalizeSender(member.name) === normalizeSender(separateName))
+    if (!existingSeparateMember) {
+      if (req.household.members.length >= MAX_MEMBERS) throw ApiError.invalid(`A household can have up to ${MAX_MEMBERS} members.`)
+      req.household.members.push({ name: separateName, role: 'member', status: 'active', tone: nextTone(req.household) })
+      await req.household.save()
+    }
   }
   const batch = await ChatImport.create({
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
