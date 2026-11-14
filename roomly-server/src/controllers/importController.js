@@ -98,7 +98,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
 
   if (!Array.isArray(senderMappings) || senderMappings.some((item) => !item || typeof item.sender !== 'string')) throw ApiError.invalid('Invalid sender mapping.')
   if (typeof separateMemberName !== 'string') throw ApiError.invalid('Enter a valid member name.')
-  if (dateOrder !== 'MDY' && dateOrder !== 'DMY') throw ApiError.invalid('Choose the date format used in this WhatsApp export.')
+  if (dateOrder != null && dateOrder !== 'MDY' && dateOrder !== 'DMY') throw ApiError.invalid('Invalid date format.')
   const mappingBySender = new Map(senderMappings.map((mapping) => [normalizeSender(mapping.sender), mapping]))
   if (separateMemberName.trim()) {
     const separateName = senderDisplayName(separateMemberName)
@@ -111,7 +111,8 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
     status: 'completed',
   })
-  const parsedMessages = parseWhatsAppExport(content, req.household._id, { dateOrder })
+  const detectedDateFormat = detectWhatsAppDateFormat(content)
+  const parsedMessages = parseWhatsAppExport(content, req.household._id, { dateOrder: dateOrder ?? detectedDateFormat.dateOrder ?? 'DMY' })
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
   for (const item of parsedMessages) {
     const isExpense = item.parsed.kind === 'expense'
