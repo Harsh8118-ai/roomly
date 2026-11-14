@@ -45,7 +45,7 @@ export function OnboardingPage() {
     try {
       const household = mode === 'create'
         ? await householdService.create(name.trim())
-        : await householdService.join(code.trim(), selectedMemberId || undefined)
+        : await householdService.join(code.trim(), selectedMemberId || undefined, !selectedMemberId)
       setInviteCode(household.inviteCode)
       await refreshUser()
       toast.success(mode === 'create' ? 'Your group is ready' : 'You joined the group')
