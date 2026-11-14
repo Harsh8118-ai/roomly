@@ -35,13 +35,31 @@ export function fingerprintMessage(householdId, sender, sentAt, text) {
 
 export function detectWhatsAppDateFormat(content) {
   const lines = String(content ?? '').replace(/\r\n?/g, '\n').split('\n')
+  let mdyEvidence = 0
+  let dmyEvidence = 0
+  const firstCounts = new Map()
+  const secondCounts = new Map()
   for (const line of lines) {
     const header = HEADER_PATTERNS.map((pattern) => pattern.exec(line)).find(Boolean)
     if (!header) continue
-    const [first, second] = header[1].split(/[/-]/).map(Number)
-    if (first > 12 && first <= 31) return { dateOrder: 'DMY', inferred: true, ambiguous: false }
-    if (second > 12 && second <= 31) return { dateOrder: 'MDY', inferred: true, ambiguous: false }
+    const bits = header[1].split(/[/-]/).map(Number)
+    if (bits.length !== 3 || bits[0] > 31 || bits[1] > 31) continue
+    const [first, second] = bits
+    if (first >= 1 && first <= 12) firstCounts.set(first, (firstCounts.get(first) ?? 0) + 1)
+    if (second >= 1 && second <= 12) secondCounts.set(second, (secondCounts.get(second) ?? 0) + 1)
+    if (first > 12 && first <= 31 && second >= 1 && second <= 12) dmyEvidence++
+    if (second > 12 && second <= 31 && first >= 1 && first <= 12) mdyEvidence++
   }
+  if (mdyEvidence !== dmyEvidence) {
+    return { dateOrder: mdyEvidence > dmyEvidence ? 'MDY' : 'DMY', inferred: true, ambiguous: false }
+  }
+  if (mdyEvidence > 0 && dmyEvidence > 0) {
+    return { dateOrder: null, inferred: false, ambiguous: true }
+  }
+  const firstRepeat = Math.max(0, ...firstCounts.values())
+  const secondRepeat = Math.max(0, ...secondCounts.values())
+  if (firstRepeat >= 2 && firstRepeat > secondRepeat) return { dateOrder: 'MDY', inferred: true, ambiguous: false }
+  if (secondRepeat >= 2 && secondRepeat > firstRepeat) return { dateOrder: 'DMY', inferred: true, ambiguous: false }
   return { dateOrder: null, inferred: false, ambiguous: true }
 }
 
