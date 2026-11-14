@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/store/ThemeProvider'
 import { AuthProvider } from '@/store/AuthProvider'
 import { ToastProvider } from '@/store/ToastProvider'
 import { ComposerProvider } from '@/store/ComposerProvider'
+import { ImportActivityProvider } from '@/store/ImportActivityProvider'
 import { ApiError } from '@/utils/errors'
 
 const queryClient = new QueryClient({
@@ -25,7 +26,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <ToastProvider>
-              <ComposerProvider>{children}</ComposerProvider>
+              <ImportActivityProvider><ComposerProvider>{children}</ComposerProvider></ImportActivityProvider>
             </ToastProvider>
           </AuthProvider>
         </QueryClientProvider>
