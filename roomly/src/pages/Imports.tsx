@@ -77,8 +77,6 @@ export function ImportsPage() {
   const [history, setHistory] = useState<ImportRecord[]>([])
   const [chat, setChat] = useState<{ filename: string; content: string } | null>(null)
   const [senders, setSenders] = useState<string[]>([])
-  const [selfSender, setSelfSender] = useState('')
-  const [separateMemberName, setSeparateMemberName] = useState('')
   const isAdmin = members.some((member) => member.id === user?.id && member.role === 'admin')
 
   const refreshHistory = async () => {
@@ -99,8 +97,6 @@ export function ImportsPage() {
       setChat(parsed)
       importActivity.update('mapping')
       setSenders(preview.senders)
-      setSelfSender(preview.senders.some((name) => /^you$/i.test(name)) ? preview.senders.find((name) => /^you$/i.test(name))! : '')
-      setSeparateMemberName('')
     } catch (error) {
       importActivity.clear()
       toast.error(error instanceof Error ? error.message : 'Could not read this chat.')
