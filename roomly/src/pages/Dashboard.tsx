@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/ui/EmptyState'
 import { useSettlement, useSummary } from '@/hooks/queries'
 import { useAuth } from '@/store/AuthProvider'
 import { currentMonth, shiftMonth } from '@/utils/date'
+import { FaWhatsapp } from "react-icons/fa";
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -29,7 +30,34 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-5 md:space-y-7">
-      <div className="flex flex-wrap items-center justify-between gap-3"><DashboardHeader month={month} /><div className="flex items-center gap-2"><MonthSelector month={month} onChange={setMonth} /><LinkButton to={ROUTES.imports} size="md" leftIcon={<FileUp size={16} />}>Import WhatsApp chats</LinkButton></div></div>
+      <div className="flex items-center gap-2">
+        <MonthSelector month={month} onChange={setMonth} />
+
+        {/* Desktop */}
+        <LinkButton
+          to={ROUTES.imports}
+          size="md"
+          className="hidden md:inline-flex"
+          leftIcon={<FileUp size={16} />}
+        >
+          Import WhatsApp chats
+        </LinkButton>
+
+        {/* Mobile: WhatsApp icon only */}
+        <LinkButton
+          to={ROUTES.imports}
+          size="md"
+          className="md:hidden"
+          aria-label="Import WhatsApp chats"
+        >
+          <div className='flex gap-2'>
+            <FaWhatsapp size={20} />
+            <p>
+              Import Chats
+            </p>
+          </div>
+        </LinkButton>
+      </div>
       <SummaryGrid month={month} summary={summary.data} settlement={settlement.data} userId={user.id} previousTotal={previous.data?.total} loading={loading} />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)] md:gap-6">
         <RecentExpenses userId={user.id} month={month} />
