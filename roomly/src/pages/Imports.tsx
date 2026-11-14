@@ -10,7 +10,7 @@ import { useImportActivity } from '@/store/ImportActivityProvider'
 
 type ImportStats = { total: number; newMessages: number; duplicates: number; candidates: number; ignored: number; approved?: number; rejected?: number; unmatched?: number }
 type ImportRecord = { id: string; filename: string; status: 'review' | 'completed'; stats: ImportStats; createdAt: string }
-type PreviewResponse = { senders: string[]; candidates: number }
+type PreviewResponse = { senders: string[]; candidates: number; dateFormat: { dateOrder: 'MDY' | 'DMY' | null; inferred: boolean; ambiguous: boolean } }
 type SenderMapping = { sender: string; memberId?: string; name?: string }
 type ImportResponse = {
   import: { id: string; filename: string; stats: ImportStats }
@@ -78,6 +78,7 @@ export function ImportsPage() {
   const [chat, setChat] = useState<{ filename: string; content: string } | null>(null)
   const [senders, setSenders] = useState<string[]>([])
   const [selfSender, setSelfSender] = useState('')
+  const [dateOrder, setDateOrder] = useState<'MDY' | 'DMY' | ''>('')
   const [separateMemberName, setSeparateMemberName] = useState('')
   const [senderChoices, setSenderChoices] = useState<Record<string, string>>({})
   const isAdmin = members.some((member) => member.id === user?.id && member.role === 'admin')
@@ -98,6 +99,7 @@ export function ImportsPage() {
       if (!parsed.content.trim()) throw new Error('The selected chat file is empty.')
       const preview = await api.post<PreviewResponse>('/imports/whatsapp/preview', { filename: parsed.filename, content: parsed.content })
       setChat(parsed)
+      setDateOrder(preview.dateFormat.dateOrder ?? '')
       importActivity.update('mapping')
       setSenders(preview.senders)
       setSelfSender(preview.senders.some((name) => /^you$/i.test(name)) ? preview.senders.find((name) => /^you$/i.test(name))! : '')
@@ -117,6 +119,7 @@ export function ImportsPage() {
   const confirmImport = async () => {
     if (!chat) return
     if (!selfSender && !separateMemberName.trim()) { toast.error('Choose your sender identity or enter a separate member name.'); return }
+    if (!dateOrder) { toast.error('Choose the date format used in this WhatsApp export.'); return }
     setBusy(true)
     importActivity.update('importing')
     try {
@@ -126,14 +129,14 @@ export function ImportsPage() {
         return { sender, name: sender }
       })
       const result = await api.post<ImportResponse>('/imports/whatsapp', {
-        filename: chat.filename, content: chat.content, senderMappings, selfSender, separateMemberName,
+        filename: chat.filename, content: chat.content, senderMappings, selfSender, separateMemberName, dateOrder,
       })
       await qc.invalidateQueries({ queryKey: ['hh'] })
       await refreshHistory()
       const stats = result.import.stats
       importActivity.finish({ imported: stats.approved ?? 0, total: stats.total, duplicates: stats.duplicates })
       toast.success(`Imported ${stats.approved ?? 0} expenses. ${stats.duplicates} duplicates skipped; ${stats.unmatched ?? 0} unmatched.`)
-      setChat(null); setSenders([]); setSelfSender(''); setSeparateMemberName('')
+      setChat(null); setSenders([]); setSelfSender(''); setSeparateMemberName(''); setDateOrder('')
     } catch (error) {
       importActivity.clear()
       toast.error(error instanceof Error ? error.message : 'Could not import this chat.')
@@ -173,6 +176,15 @@ export function ImportsPage() {
       </section>
       {chat && <section className="card mb-5 space-y-4 p-4 sm:mb-6 sm:space-y-5 sm:p-5">
         <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-accent-strong">Step 2 of 2</div><h2 className="font-semibold">Match your group members</h2><p className="mt-1 text-sm text-muted">{senders.length} senders found · {chat.filename}</p></div><button className="rounded-md p-2 text-muted hover:bg-surface-2" onClick={() => { setChat(null); importActivity.clear() }} aria-label="Cancel import"><X size={18}/></button></div>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">WhatsApp date format</label>
+          <select value={dateOrder} onChange={(e) => setDateOrder(e.target.value as 'MDY' | 'DMY' | '')} className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm">
+            <option value="" disabled>Choose the date format</option>
+            <option value="MDY">MM/DD/YY — Month / Day / Year</option>
+            <option value="DMY">DD/MM/YY — Day / Month / Year</option>
+          </select>
+          <p className="text-xs text-muted">{dateOrder ? 'Selected format will be applied consistently to every message in this export.' : 'Roomly could not determine the format automatically because all dates are ambiguous. Choose the format used by this export.'}</p>
+        </div>
         <div className="space-y-2">
           <label className="block text-sm font-medium">Which sender are you?</label>
           <select value={selfSender ? 'sender:'+selfSender : '__separate__'} onChange={(e) => { if (e.target.value === '__separate__') setSelfSender(''); else { setSelfSender(e.target.value.slice(7)); setSeparateMemberName('') } }} className="h-11 w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-sm">
