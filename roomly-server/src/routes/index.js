@@ -30,6 +30,7 @@ router.patch('/auth/me', authenticate, validate({ body: v.profileBody }), auth.u
 
 router.get('/households', authenticate, households.list)
 router.post('/households', authenticate, validate({ body: v.householdNameBody }), households.create)
+router.get('/households/invite/:inviteCode', authenticate, households.invitePreview)
 router.post('/households/join', authenticate, joinLimiter, validate({ body: v.joinBody }), households.join)
 router.put('/households/current', authenticate, validate({ body: v.switchBody }), households.switchCurrent)
 
