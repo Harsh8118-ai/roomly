@@ -44,16 +44,30 @@ async function createImportedExpense({ household, user, message, memberId }) {
   const date = new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
   if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80) return { invalid: true }
   if (await isMonthClosed(household, monthOf(date))) return { closed: true }
-  const expense = await Expense.create({
-    householdId: household._id, title, amount, category, paidBy: memberId, date,
-    note: 'Imported from WhatsApp chat', createdBy: user._id, source: 'whatsapp',
-    whatsappMessageId: 'import:' + message._id,
-  })
+  const whatsappMessageId = 'import:' + message._id
+  // Idempotency guard: a retried import must never create a second expense
+  // for an ImportedMessage, even if the request was interrupted after Expense.create.
+  let expense = await Expense.findOne({ whatsappMessageId })
+  if (!expense) {
+    try {
+      expense = await Expense.create({
+        householdId: household._id, title, amount, category, paidBy: memberId, date,
+        note: 'Imported from WhatsApp chat', createdBy: user._id, source: 'whatsapp',
+        whatsappMessageId,
+      })
+    } catch (error) {
+      if (error?.code !== 11000) throw error
+      expense = await Expense.findOne({ whatsappMessageId })
+      if (!expense) throw error
+    }
+  }
   message.status = 'approved'
   message.senderMemberId = memberId
   message.expenseId = expense._id
   await message.save()
-  publish(household._id, { type: 'expense.created', id: String(expense._id), by: String(user._id), source: 'whatsapp', title, amount, category })
+  if (String(expense.createdBy) === String(user._id) && expense.createdAt && Date.now() - new Date(expense.createdAt).getTime() < 5000) {
+    publish(household._id, { type: 'expense.created', id: String(expense._id), by: String(user._id), source: 'whatsapp', title, amount, category })
+  }
   return { expense }
 }
 
@@ -107,6 +121,34 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     if (req.household.isModified('members')) await req.household.save()
     const senderMemberId = member?._id ?? null
     const status = isExpense ? (senderMemberId ? 'approved' : 'pending') : 'ignored'
+    // Check the household's import ledger before attempting an insert. This also
+    // protects installations where MongoDB's unique index was not present yet.
+    const previouslyImported = await ImportedMessage.findOne({
+      householdId: req.household._id,
+      fingerprint: item.fingerprint,
+    })
+    if (previouslyImported) {
+      duplicates++
+      // Recover a previously interrupted pending message only when a valid member
+      // mapping is now available. Approved/ignored records are never re-created.
+      if (isExpense && previouslyImported.status === 'pending' && senderMemberId) {
+        previouslyImported.senderMemberId = senderMemberId
+        const recovered = await createImportedExpense({
+          household: req.household, user: req.user, message: previouslyImported, memberId: senderMemberId,
+        })
+        if (recovered.expense) {
+          duplicates--
+          imported++
+          await ChatImport.updateOne({ _id: previouslyImported.importId }, { $inc: { 'stats.approved': 1, 'stats.unmatched': -1 } })
+        } else if (recovered.invalid) {
+          previouslyImported.status = 'ignored'
+          await previouslyImported.save()
+          ignored++
+        } else if (recovered.closed) unmatched++
+      }
+      continue
+    }
+
     const doc = {
       householdId: req.household._id, importId: batch._id, fingerprint: item.fingerprint,
       sender: item.sender, senderMemberId,
