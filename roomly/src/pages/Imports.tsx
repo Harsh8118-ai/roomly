@@ -172,7 +172,7 @@ export function ImportsPage() {
         </div>
       </section>
       {chat && <section className="card mb-5 space-y-4 p-4 sm:mb-6 sm:space-y-5 sm:p-5">
-        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-accent-strong">Step 2 of 2</div><h2 className="font-semibold">Match your group members</h2><p className="mt-1 text-sm text-muted">{senders.length} senders found · {chat.filename}</p></div><button className="rounded-md p-2 text-muted hover:bg-surface-2" onClick={() => setChat(null)} aria-label="Cancel import"><X size={18}/></button></div>
+        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-accent-strong">Step 2 of 2</div><h2 className="font-semibold">Match your group members</h2><p className="mt-1 text-sm text-muted">{senders.length} senders found · {chat.filename}</p></div><button className="rounded-md p-2 text-muted hover:bg-surface-2" onClick={() => { setChat(null); importActivity.clear() }} aria-label="Cancel import"><X size={18}/></button></div>
         <div className="space-y-2">
           <label className="block text-sm font-medium">Which sender are you?</label>
           <select value={selfSender ? 'sender:'+selfSender : '__separate__'} onChange={(e) => { if (e.target.value === '__separate__') setSelfSender(''); else { setSelfSender(e.target.value.slice(7)); setSeparateMemberName('') } }} className="h-11 w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-sm">
