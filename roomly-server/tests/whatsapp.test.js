@@ -82,6 +82,10 @@ describe('linking a number', () => {
     meta.reset()
     assert.equal((await postWebhook(dmPayload({ from: '+91 99111-12222', text: `!link ${lc.code.toLowerCase()}`, name: 'Rahul' }))).status, 200)
     const reply = meta.texts().at(-1)
+    if (!reply) {
+      const recent = await WhatsappMessage.find().sort({ createdAt: -1 }).limit(5).select('wamid outcome via text').lean()
+      assert.fail(`Expected a WhatsApp link reply; recent message outcomes: ${JSON.stringify(recent)}`)
+    }
     assert.equal(reply.to, '919911112222')
     assert.equal(reply.recipient_type, 'individual')
     assert.match(reply.text.body, /^✅ Linked! Hi Rahul/)
@@ -110,6 +114,10 @@ describe('linking a number', () => {
     await WhatsappLinkCode.updateMany({}, { expiresAt: new Date(Date.now() - 1000) })
     meta.reset()
     await postWebhook(dmPayload({ from: '919955550001', text: `link ${lc.code}` }))
+    if (!meta.texts().at(-1)) {
+      const recent = await WhatsappMessage.find().sort({ createdAt: -1 }).limit(5).select('wamid outcome via text').lean()
+      assert.fail(`Expected an expired-code reply; recent message outcomes: ${JSON.stringify(recent)}`)
+    }
     assert.match(meta.texts().at(-1).text.body, /didn’t work/)
 
     for (let i = 0; i < 9; i++) await postWebhook(dmPayload({ from: '919955550002', text: `link RM-AAAA${i}A` }))
