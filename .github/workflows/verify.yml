@@ -26,8 +26,14 @@ jobs:
     name: Backend JavaScript syntax
     runs-on: ubuntu-latest
     env:
-      # Tests use a disposable secret; never a production credential.
+      NODE_ENV: test
+      MONGODB_URI: mongodb://127.0.0.1:27017/roomly_test
+      # Test-only values; never production credentials.
       JWT_SECRET: roomly-ci-test-secret-not-used-outside-ci
+      WHATSAPP_ACCESS_TOKEN: test-token
+      WHATSAPP_PHONE_NUMBER_ID: "1065403522"
+      WHATSAPP_APP_SECRET: test-app-secret
+      WHATSAPP_VERIFY_TOKEN: test-verify-token
     services:
       mongodb:
         image: mongo:7
