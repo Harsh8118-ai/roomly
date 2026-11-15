@@ -59,3 +59,14 @@ test('reports ambiguous date formats when no date disambiguates the export', asy
     dateOrder: null, inferred: false, ambiguous: true,
   });
 });
+
+
+test('rejects impossible hours, minutes and seconds', () => {
+  const invalid = parseWhatsAppExport([
+    '[11/15/26, 13:30 PM] Biro: 50 snack',
+    '[11/15/26, 25:00] Biro: 60 snack',
+    '[11/15/26, 10:60 AM] Biro: 70 snack',
+    '[11/15/26, 10:30:61 AM] Biro: 80 snack',
+  ].join('\n'), 'house-1', { dateOrder: 'MDY' })
+  assert.equal(invalid.length, 0)
+})
