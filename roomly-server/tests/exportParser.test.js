@@ -70,3 +70,10 @@ test('rejects impossible hours, minutes and seconds', () => {
   ].join('\n'), 'house-1', { dateOrder: 'MDY' })
   assert.equal(invalid.length, 0)
 })
+
+
+test('interprets WhatsApp wall-clock timestamps in the configured household timezone', () => {
+  const parsed = parseWhatsAppExport('[11/15/26, 12:15 AM] Biro: 50 snack', 'house-1', { dateOrder: 'MDY' })
+  assert.equal(parsed.length, 1)
+  assert.equal(parsed[0].sentAt.toISOString(), '2026-11-14T18:45:00.000Z')
+})
