@@ -103,6 +103,13 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   if (!Array.isArray(senderMappings) || senderMappings.some((item) => !item || typeof item.sender !== 'string')) throw ApiError.invalid('Invalid sender mapping.')
   if (typeof separateMemberName !== 'string') throw ApiError.invalid('Enter a valid member name.')
   if (dateOrder != null && dateOrder !== 'MDY' && dateOrder !== 'DMY') throw ApiError.invalid('Invalid date format.')
+  const detectedDateFormat = detectWhatsAppDateFormat(content)
+  if (!dateOrder && detectedDateFormat.ambiguous) {
+    throw ApiError.invalid('This chat has ambiguous dates. Choose DD/MM/YY or MM/DD/YY before importing.')
+  }
+  const parsedMessages = parseWhatsAppExport(content, req.household._id, {
+    dateOrder: dateOrder ?? detectedDateFormat.dateOrder ?? 'DMY',
+  })
   const mappingBySender = new Map(senderMappings.map((mapping) => [normalizeSender(mapping.sender), mapping]))
   if (separateMemberName.trim()) {
     const separateName = senderDisplayName(separateMemberName)
@@ -117,13 +124,6 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   const batch = await ChatImport.create({
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
     status: 'completed',
-  })
-  const detectedDateFormat = detectWhatsAppDateFormat(content)
-  if (!dateOrder && detectedDateFormat.ambiguous) {
-    throw ApiError.invalid('This chat has ambiguous dates. Choose DD/MM/YY or MM/DD/YY before importing.')
-  }
-  const parsedMessages = parseWhatsAppExport(content, req.household._id, {
-    dateOrder: dateOrder ?? detectedDateFormat.dateOrder ?? 'DMY',
   })
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
   for (const item of parsedMessages) {
