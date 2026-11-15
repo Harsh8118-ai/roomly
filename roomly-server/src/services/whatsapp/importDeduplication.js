@@ -14,8 +14,9 @@ function parsedParts(message) {
 
 /**
  * Recognizes expense lines already imported by the legacy block-based parser.
- * The timestamp is intentionally exact: two same-value purchases at different
- * times remain distinct expenses.
+ * The sender, message clock time and parsed amount/title must match. This also
+ * recognizes the legacy parser's month/day-swapped timestamp when its export
+ * date order was ambiguous. Same-value purchases at different times stay distinct.
  */
 function sameMessageTime(left, right) {
   const a = new Date(left)
