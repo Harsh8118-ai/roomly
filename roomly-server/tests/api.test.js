@@ -49,7 +49,7 @@ describe('households', () => {
   it('creates a household with the creator as admin; member id equals user id', async () => {
     const u = await newUser('Rahul Sharma')
     const h = await newHousehold(u, 'Casa 4')
-    assert.match(h.inviteCode, /^CASA-[A-Z0-9]{4}$/)
+    assert.match(h.inviteCode, /^\\d{4}$/)
     assert.equal(h.members.length, 1)
     assert.equal(h.members[0].id, u.user.id)
     assert.equal(h.members[0].role, 'admin')
@@ -70,7 +70,7 @@ describe('households', () => {
     const joined = await joinHousehold(friend, h.inviteCode.toLowerCase())
     assert.equal(joined.members.length, 3)
     assert.equal((await friend.as(api().post('/api/households/join')).send({ inviteCode: h.inviteCode })).status, 409)
-    assert.equal((await friend.as(api().post('/api/households/join')).send({ inviteCode: 'NOPE-0000' })).status, 404)
+    assert.equal((await friend.as(api().post('/api/households/join')).send({ inviteCode: '0000' })).status, 404)
 
     assert.equal((await friend.as(api().patch('/api/households/current')).send({ name: 'Hijacked' })).status, 403)
     const renamed = await owner.as(api().patch('/api/households/current')).send({ name: 'Flat 303' })
