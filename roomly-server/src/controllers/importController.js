@@ -119,7 +119,12 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     status: 'completed',
   })
   const detectedDateFormat = detectWhatsAppDateFormat(content)
-  const parsedMessages = parseWhatsAppExport(content, req.household._id, { dateOrder: dateOrder ?? detectedDateFormat.dateOrder ?? 'DMY' })
+  if (!dateOrder && detectedDateFormat.ambiguous) {
+    throw ApiError.invalid('This chat has ambiguous dates. Choose DD/MM/YY or MM/DD/YY before importing.')
+  }
+  const parsedMessages = parseWhatsAppExport(content, req.household._id, {
+    dateOrder: dateOrder ?? detectedDateFormat.dateOrder ?? 'DMY',
+  })
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
   for (const item of parsedMessages) {
     const isExpense = item.parsed.kind === 'expense'
