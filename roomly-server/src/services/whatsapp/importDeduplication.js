@@ -36,6 +36,9 @@ function sameMessageTime(left, right) {
 export function legacyTimestampCandidates(value) {
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return []
+  // Only swap when both components could represent a month. If the day is
+  // greater than 12, the export itself disambiguates the date order.
+  if (date.getUTCDate() > 12) return [date]
   const swapped = new Date(Date.UTC(
     date.getUTCFullYear(), date.getUTCDate() - 1, date.getUTCMonth() + 1,
     date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds(),
