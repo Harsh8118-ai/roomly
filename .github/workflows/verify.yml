@@ -25,6 +25,9 @@ jobs:
   backend:
     name: Backend JavaScript syntax
     runs-on: ubuntu-latest
+    env:
+      # Tests use a disposable secret; never a production credential.
+      JWT_SECRET: roomly-ci-test-secret-not-used-outside-ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
