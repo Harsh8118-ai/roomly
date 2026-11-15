@@ -21,15 +21,26 @@ function parsedParts(message) {
 function sameMessageTime(left, right) {
   const a = new Date(left)
   const b = new Date(right)
+  if (!Number.isFinite(a.getTime()) || !Number.isFinite(b.getTime())) return false
   if (a.getTime() === b.getTime()) return true
-  const sameClock = a.getFullYear() === b.getFullYear()
-    && a.getHours() === b.getHours()
-    && a.getMinutes() === b.getMinutes()
-    && a.getSeconds() === b.getSeconds()
-    && a.getMilliseconds() === b.getMilliseconds()
-  const swappedDate = a.getMonth() === b.getDate() - 1
-    && a.getDate() === b.getMonth() + 1
+  const sameClock = a.getUTCFullYear() === b.getUTCFullYear()
+    && a.getUTCHours() === b.getUTCHours()
+    && a.getUTCMinutes() === b.getUTCMinutes()
+    && a.getUTCSeconds() === b.getUTCSeconds()
+    && a.getUTCMilliseconds() === b.getUTCMilliseconds()
+  const swappedDate = a.getUTCMonth() === b.getUTCDate() - 1
+    && a.getUTCDate() === b.getUTCMonth() + 1
   return sameClock && swappedDate
+}
+
+export function legacyTimestampCandidates(value) {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return []
+  const swapped = new Date(Date.UTC(
+    date.getUTCFullYear(), date.getUTCDate() - 1, date.getUTCMonth() + 1,
+    date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds(),
+  ))
+  return [date, swapped]
 }
 
 export function isLegacyDuplicateExpense(candidate, existingMessages = []) {
