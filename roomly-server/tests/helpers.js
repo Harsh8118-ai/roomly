@@ -2,6 +2,8 @@ import mongoose from 'mongoose'
 import request from 'supertest'
 import { createApp } from '../src/app.js'
 import { connectDb, disconnectDb } from '../src/config/db.js'
+import { User } from '../src/models/User.js'
+import { signToken } from '../src/services/tokenService.js'
 
 export const app = createApp()
 export const api = () => request(app)
@@ -14,11 +16,17 @@ export async function setup() {
 export const teardown = () => disconnectDb()
 
 let n = 0
-/** Registers a user and returns { token, user, as } where as(req) adds their auth header. */
+/**
+ * Creates a test user directly in the isolated test database.
+ * Production authentication remains Google OAuth only; tests must not call
+ * a removed password-registration endpoint.
+ */
 export async function newUser(name = 'Test User', email) {
-  const res = await api().post('/api/auth/register').send({ name, email: email ?? `user${++n}-${Date.now()}@example.com`, password: 'password123' })
-  if (res.status !== 201) throw new Error(`register failed: ${res.status} ${JSON.stringify(res.body)}`)
-  return { ...res.body, as: (r) => r.set('Authorization', `Bearer ${res.body.token}`) }
+  const normalizedEmail = (email ?? `user${++n}-${Date.now()}@example.com`).toLowerCase()
+  const doc = await User.create({ name, email: normalizedEmail, googleId: `test-google-${n}-${Date.now()}` })
+  const user = { id: String(doc._id), name: doc.name, email: doc.email, avatarUrl: doc.avatarUrl }
+  const token = signToken(doc)
+  return { token, user, as: (r) => r.set('Authorization', `Bearer ${token}`) }
 }
 
 export async function newHousehold(owner, name = 'Casa Test') {
