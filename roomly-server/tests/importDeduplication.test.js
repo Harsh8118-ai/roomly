@@ -30,3 +30,13 @@ test('does not treat another sender or amount as a duplicate', () => {
     { sender: 'Biro 🖤', sentAt: candidate.sentAt, text: '121 dinner' },
   ]), false)
 })
+
+
+test('matches legacy records with an old month/day-swapped timestamp', () => {
+  const swapped = new Date('2026-12-11T20:29:22.000Z')
+  assert.equal(isLegacyDuplicateExpense(candidate, [{
+    sender: 'Biro 🖤',
+    sentAt: swapped,
+    text: '120 dinner\\n100 breakfast',
+  }]), true)
+})
