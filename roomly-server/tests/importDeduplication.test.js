@@ -44,3 +44,11 @@ test('matches legacy records with an old month/day-swapped timestamp', () => {
     text: '533-Bazar',
   }]), true)
 })
+
+
+test('provides exact and month/day-swapped timestamp query candidates', () => {
+  const candidates = legacyTimestampCandidates(candidate.sentAt)
+  assert.equal(candidates.length, 2)
+  assert.equal(candidates[0].toISOString(), candidate.sentAt.toISOString())
+  assert.equal(candidates[1].toISOString(), '2026-12-13T20:29:22.000Z')
+})
