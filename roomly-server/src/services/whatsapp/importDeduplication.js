@@ -1,4 +1,5 @@
 import { parseMessage } from './parser.js'
+import { env } from '../../config/env.js'
 
 const normalize = (value) => String(value ?? '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()
 
@@ -18,32 +19,75 @@ function parsedParts(message) {
  * recognizes the legacy parser's month/day-swapped timestamp when its export
  * date order was ambiguous. Same-value purchases at different times stay distinct.
  */
+function partsInZone(value, timeZone) {
+  const date = new Date(value)
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  })
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]))
+  return {
+    year: Number(parts.year), month: Number(parts.month), day: Number(parts.day),
+    hour: Number(parts.hour), minute: Number(parts.minute), second: Number(parts.second),
+    millisecond: date.getUTCMilliseconds(),
+  }
+}
+
+function dateRepresentations(value) {
+  return [partsInZone(value, 'UTC'), partsInZone(value, env.APP_TIMEZONE)]
+}
+
 function sameMessageTime(left, right) {
-  const a = new Date(left)
-  const b = new Date(right)
-  if (!Number.isFinite(a.getTime()) || !Number.isFinite(b.getTime())) return false
-  if (a.getTime() === b.getTime()) return true
-  const sameClock = a.getUTCFullYear() === b.getUTCFullYear()
-    && a.getUTCHours() === b.getUTCHours()
-    && a.getUTCMinutes() === b.getUTCMinutes()
-    && a.getUTCSeconds() === b.getUTCSeconds()
-    && a.getUTCMilliseconds() === b.getUTCMilliseconds()
-  const swappedDate = a.getUTCMonth() === b.getUTCDate() - 1
-    && a.getUTCDate() === b.getUTCMonth() + 1
-  return sameClock && swappedDate
+  const aDate = new Date(left)
+  const bDate = new Date(right)
+  if (!Number.isFinite(aDate.getTime()) || !Number.isFinite(bDate.getTime())) return false
+  if (aDate.getTime() === bDate.getTime()) return true
+  for (const a of dateRepresentations(aDate)) {
+    for (const b of dateRepresentations(bDate)) {
+      const sameClock = a.hour === b.hour && a.minute === b.minute
+        && a.second === b.second && a.millisecond === b.millisecond
+      const sameDate = a.year === b.year && a.month === b.month && a.day === b.day
+      const swappedDate = a.year === b.year && a.month === b.day && a.day === b.month
+      if (sameClock && (sameDate || swappedDate)) return true
+    }
+  }
+  return false
+}
+
+function wallTimeToInstant(parts) {
+  const target = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second, parts.millisecond)
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: env.APP_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  })
+  let guess = target
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const formatted = Object.fromEntries(formatter.formatToParts(new Date(guess)).map((part) => [part.type, part.value]))
+    const represented = Date.UTC(Number(formatted.year), Number(formatted.month) - 1, Number(formatted.day),
+      Number(formatted.hour), Number(formatted.minute), Number(formatted.second))
+    const correction = represented - target
+    if (!correction) break
+    guess -= correction
+  }
+  return new Date(guess)
 }
 
 export function legacyTimestampCandidates(value) {
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return []
-  // Only swap when both components could represent a month. If the day is
-  // greater than 12, the export itself disambiguates the date order.
-  if (date.getUTCDate() > 12) return [date]
-  const swapped = new Date(Date.UTC(
-    date.getUTCFullYear(), date.getUTCDate() - 1, date.getUTCMonth() + 1,
-    date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds(),
-  ))
-  return [date, swapped]
+  const zoned = partsInZone(date, env.APP_TIMEZONE)
+  const values = [date]
+  // Current imports store real instants; old versions may have stored the same
+  // wall-clock timestamp as if it were UTC. Query both representations.
+  values.push(new Date(Date.UTC(zoned.year, zoned.month - 1, zoned.day,
+    zoned.hour, zoned.minute, zoned.second, zoned.millisecond)))
+  if (zoned.day <= 12) {
+    const swapped = { ...zoned, month: zoned.day, day: zoned.month }
+    values.push(wallTimeToInstant(swapped))
+    values.push(new Date(Date.UTC(swapped.year, swapped.month - 1, swapped.day,
+      swapped.hour, swapped.minute, swapped.second, swapped.millisecond)))
+  }
+  return [...new Map(values.filter((item) => Number.isFinite(item.getTime())).map((item) => [item.getTime(), item])).values()]
 }
 
 export function isLegacyDuplicateExpense(candidate, existingMessages = []) {
