@@ -12,6 +12,7 @@ type ImportStats = { total: number; newMessages: number; duplicates: number; can
 type ImportRecord = { id: string; filename: string; status: 'review' | 'completed'; stats: ImportStats; createdAt: string }
 type PreviewResponse = { senders: string[]; candidates: number; dateFormat: { dateOrder: 'MDY' | 'DMY' | null; inferred: boolean; ambiguous: boolean } }
 type SenderMapping = { sender: string; memberId?: string; name?: string }
+type DateOrder = 'MDY' | 'DMY'
 type ImportResponse = {
   import: { id: string; filename: string; stats: ImportStats }
 }
@@ -77,6 +78,8 @@ export function ImportsPage() {
   const [history, setHistory] = useState<ImportRecord[]>([])
   const [chat, setChat] = useState<{ filename: string; content: string } | null>(null)
   const [senders, setSenders] = useState<string[]>([])
+  const [dateOrder, setDateOrder] = useState<DateOrder | null>(null)
+  const [dateOrderInferred, setDateOrderInferred] = useState(false)
   const isAdmin = members.some((member) => member.id === user?.id && member.role === 'admin')
 
   const refreshHistory = async () => {
@@ -95,6 +98,8 @@ export function ImportsPage() {
       if (!parsed.content.trim()) throw new Error('The selected chat file is empty.')
       const preview = await api.post<PreviewResponse>('/imports/whatsapp/preview', { filename: parsed.filename, content: parsed.content })
       setChat(parsed)
+      setDateOrder(preview.dateFormat.dateOrder)
+      setDateOrderInferred(preview.dateFormat.inferred)
       importActivity.update('mapping')
       setSenders(preview.senders)
     } catch (error) {
@@ -105,6 +110,7 @@ export function ImportsPage() {
 
   const startImport = async (selectedSender: string | null) => {
     if (!chat || busy) return
+    if (!dateOrder) { toast.error('Choose the date format before importing this chat.'); return }
     const separateMemberName = selectedSender ? '' : user?.name?.trim() ?? ''
     if (!selectedSender && !separateMemberName) {
       toast.error('Your account name is missing. Update your profile before importing as a separate member.')
@@ -122,7 +128,7 @@ export function ImportsPage() {
         })
       const result = await api.post<ImportResponse>('/imports/whatsapp', {
         filename: chat.filename, content: chat.content, senderMappings,
-        selfSender: selectedSender ?? '', separateMemberName,
+        selfSender: selectedSender ?? '', separateMemberName, dateOrder,
       })
       await qc.invalidateQueries({ queryKey: ['hh'] })
       await refreshHistory()
@@ -131,6 +137,8 @@ export function ImportsPage() {
       toast.success(`Imported ${stats.approved ?? 0} expenses. ${stats.duplicates} duplicates skipped; ${stats.unmatched ?? 0} unmatched.`)
       setChat(null)
       setSenders([])
+      setDateOrder(null)
+      setDateOrderInferred(false)
     } catch (error) {
       importActivity.clear()
       toast.error(error instanceof Error ? error.message : 'Could not import this chat.')
@@ -175,26 +183,35 @@ export function ImportsPage() {
             <h2 className="text-lg font-semibold">Who are you in this chat?</h2>
             <p className="mt-1 text-sm text-muted">{senders.length} expense senders detected · {chat.filename}</p>
           </div>
-          <button className="rounded-md p-2 text-muted transition hover:bg-surface-2" onClick={() => { setChat(null); setSenders([]); importActivity.clear() }} aria-label="Cancel import"><X size={18}/></button>
+          <button className="rounded-md p-2 text-muted transition hover:bg-surface-2" onClick={() => { setChat(null); setSenders([]); setDateOrder(null); setDateOrderInferred(false); importActivity.clear() }} aria-label="Cancel import"><X size={18}/></button>
         </div>
         <div className="space-y-2 p-4 sm:p-5">
+          <div className="rounded-lg border border-line bg-surface-2 p-3">
+            <p className="text-sm font-medium">Chat date format</p>
+            {dateOrder ? <p className="mt-1 text-xs text-muted">{dateOrderInferred ? 'Detected automatically from unambiguous dates.' : 'Confirm the date order used in this WhatsApp export.'}</p> : <p className="mt-1 text-xs text-muted">The dates in this export are ambiguous. Choose the format used by the original phone.</p>}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" disabled={busy} onClick={() => { setDateOrder('DMY'); setDateOrderInferred(false) }} aria-pressed={dateOrder === 'DMY'} className={`rounded-lg border px-3 py-2 text-sm ${dateOrder === 'DMY' ? 'border-accent-strong bg-accent-soft font-semibold text-accent-strong' : 'border-line bg-surface'}`}>DD/MM/YY · 11/12 = 11 December</button>
+              <button type="button" disabled={busy} onClick={() => { setDateOrder('MDY'); setDateOrderInferred(false) }} aria-pressed={dateOrder === 'MDY'} className={`rounded-lg border px-3 py-2 text-sm ${dateOrder === 'MDY' ? 'border-accent-strong bg-accent-soft font-semibold text-accent-strong' : 'border-line bg-surface'}`}>MM/DD/YY · 11/12 = November 12</button>
+            </div>
+          </div>
           <p className="hidden sm:flex text-sm text-muted">Choose your name below. Roomly matches the remaining senders to existing members where possible and creates missing members automatically.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {senders.map((sender) => {
               const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
               const match = members.find((member) => normalize(member.name) === normalize(sender))
-              return <button key={sender} type="button" disabled={busy} onClick={() => void startImport(sender)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-accent-strong/60 hover:bg-accent-soft/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60">
+              return <button key={sender} type="button" disabled={busy || !dateOrder} onClick={() => void startImport(sender)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-accent-strong/60 hover:bg-accent-soft/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-strong"><UserRound size={19}/></span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{sender}</span><span className="mt-0.5 block text-xs text-muted">{match ? `Matches Roomly member · ${match.name}` : 'Use this sender as your identity'}</span></span>
                 <ArrowRight size={17} className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent-strong"/>
               </button>
             })}
-            <button type="button" disabled={busy} onClick={() => void startImport(null)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-dashed border-accent-strong/50 bg-accent-soft/20 p-3 text-left transition hover:border-accent-strong hover:bg-accent-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60 sm:col-span-2">
+            <button type="button" disabled={busy || !dateOrder} onClick={() => void startImport(null)} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-dashed border-accent-strong/50 bg-accent-soft/20 p-3 text-left transition hover:border-accent-strong hover:bg-accent-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong disabled:cursor-wait disabled:opacity-60 sm:col-span-2">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface text-accent-strong"><Users size={19}/></span>
               <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">I’m not in this chat</span><span className="mt-0.5 block text-xs text-muted">Make you a separate household member</span></span>
               <ArrowRight size={17} className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent-strong"/>
             </button>
           </div>
+          {!dateOrder && <p className="text-xs text-warning">Select the date format above to enable importing.</p>}
           {busy && <div className="flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-2.5 text-sm text-accent-strong" role="status"><RefreshCw size={15} className="animate-spin"/> Importing chat and assigning expenses…</div>}
           <p className="pt-1 text-xs text-muted">Selecting an option starts the import immediately.</p>
         </div>

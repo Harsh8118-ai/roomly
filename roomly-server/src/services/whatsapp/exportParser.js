@@ -1,10 +1,34 @@
 import crypto from 'node:crypto'
 import { parseMessage } from './parser.js'
+import { env } from '../../config/env.js'
 
 const HEADER_PATTERNS = [
   /^\uFEFF?\[(\d{1,4}[/-]\d{1,2}[/-]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)\]\s*([^:]+):\s?(.*)$/i,
   /^\uFEFF?(\d{1,4}[/-]\d{1,2}[/-]\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)\s+-\s+([^:]+):\s?(.*)$/i,
 ]
+
+function wallTimeToInstant(year, month, day, hour, minute, second) {
+  const target = Date.UTC(year, month - 1, day, hour, minute, second)
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: env.APP_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  })
+  let guess = target
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(guess)).map((part) => [part.type, part.value]))
+    const represented = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+      Number(parts.hour), Number(parts.minute), Number(parts.second))
+    const correction = represented - target
+    if (correction === 0) break
+    guess -= correction
+  }
+  const result = new Date(guess)
+  const parts = Object.fromEntries(formatter.formatToParts(result).map((part) => [part.type, part.value]))
+  // Reject local times that do not exist (for example, a DST spring-forward gap).
+  if (Number(parts.year) !== year || Number(parts.month) !== month || Number(parts.day) !== day
+    || Number(parts.hour) !== hour || Number(parts.minute) !== minute || Number(parts.second) !== second) return null
+  return result
+}
 
 function parseDate(datePart, timePart, dateOrder = 'DMY') {
   const bits = datePart.split(/[/-]/).map(Number)
@@ -26,8 +50,9 @@ function parseDate(datePart, timePart, dateOrder = 'DMY') {
   if (!meridiem && hour > 23) return null
   if (meridiem === 'pm' && hour < 12) hour += 12
   if (meridiem === 'am' && hour === 12) hour = 0
-  const value = new Date(year, month - 1, day, hour, minute, second)
-  return Number.isNaN(value.getTime()) || value.getFullYear() !== year || value.getMonth() !== month - 1 || value.getDate() !== day ? null : value
+  const calendarDate = new Date(Date.UTC(year, month - 1, day))
+  if (calendarDate.getUTCFullYear() !== year || calendarDate.getUTCMonth() !== month - 1 || calendarDate.getUTCDate() !== day) return null
+  return wallTimeToInstant(year, month, day, hour, minute, second)
 }
 
 function normalize(value) {

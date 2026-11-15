@@ -2,13 +2,13 @@ import { ChatImport } from '../models/ChatImport.js'
 import { ImportedMessage } from '../models/ImportedMessage.js'
 import { Expense } from '../models/Expense.js'
 import { parseWhatsAppExport, detectWhatsAppDateFormat } from '../services/whatsapp/exportParser.js'
-import { isLegacyDuplicateExpense } from '../services/whatsapp/importDeduplication.js'
+import { isLegacyDuplicateExpense, legacyTimestampCandidates } from '../services/whatsapp/importDeduplication.js'
 import { CATEGORY_IDS, MAX_MEMBERS } from '../constants.js'
 import { nextTone } from '../services/householdService.js'
 import { ApiError } from '../utils/ApiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { isMonthClosed } from '../services/settlementService.js'
-import { monthOf } from '../utils/date.js'
+import { monthOf, isoDateOf } from '../utils/date.js'
 import { publish } from '../services/events.js'
 
 const MAX_EXPORT_CHARS = 10 * 1024 * 1024
@@ -29,9 +29,12 @@ function senderDisplayName(value) {
 function isSwappedMonthDay(existingDate, incomingDate) {
   const oldDate = new Date(existingDate)
   const newDate = new Date(incomingDate)
-  return oldDate.getFullYear() === newDate.getFullYear()
-    && oldDate.getMonth() + 1 === newDate.getDate()
-    && oldDate.getDate() === newDate.getMonth() + 1
+  return oldDate.getUTCFullYear() === newDate.getUTCFullYear()
+    && oldDate.getUTCMonth() + 1 === newDate.getUTCDate()
+    && oldDate.getUTCDate() === newDate.getUTCMonth() + 1
+    && oldDate.getUTCHours() === newDate.getUTCHours()
+    && oldDate.getUTCMinutes() === newDate.getUTCMinutes()
+    && oldDate.getUTCSeconds() === newDate.getUTCSeconds()
 }
 
 function resolveSenderMember(household, sender) {
@@ -50,7 +53,7 @@ async function createImportedExpense({ household, user, message, memberId }) {
   const title = String(message.parsed?.title ?? '').trim()
   const category = CATEGORY_IDS.includes(message.parsed?.category) ? message.parsed.category : 'other'
   const sentAt = new Date(message.sentAt)
-  const date = new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
+  const date = isoDateOf(new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000))
   if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80) return { invalid: true }
   if (await isMonthClosed(household, monthOf(date))) return { closed: true }
   const whatsappMessageId = 'import:' + message._id
@@ -100,6 +103,13 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
   if (!Array.isArray(senderMappings) || senderMappings.some((item) => !item || typeof item.sender !== 'string')) throw ApiError.invalid('Invalid sender mapping.')
   if (typeof separateMemberName !== 'string') throw ApiError.invalid('Enter a valid member name.')
   if (dateOrder != null && dateOrder !== 'MDY' && dateOrder !== 'DMY') throw ApiError.invalid('Invalid date format.')
+  const detectedDateFormat = detectWhatsAppDateFormat(content)
+  if (!dateOrder && detectedDateFormat.ambiguous) {
+    throw ApiError.invalid('This chat has ambiguous dates. Choose DD/MM/YY or MM/DD/YY before importing.')
+  }
+  const parsedMessages = parseWhatsAppExport(content, req.household._id, {
+    dateOrder: dateOrder ?? detectedDateFormat.dateOrder ?? 'DMY',
+  })
   const mappingBySender = new Map(senderMappings.map((mapping) => [normalizeSender(mapping.sender), mapping]))
   if (separateMemberName.trim()) {
     const separateName = senderDisplayName(separateMemberName)
@@ -115,8 +125,6 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
     householdId: req.household._id, uploadedBy: req.user._id, filename: filename.slice(0, 180),
     status: 'completed',
   })
-  const detectedDateFormat = detectWhatsAppDateFormat(content)
-  const parsedMessages = parseWhatsAppExport(content, req.household._id, { dateOrder: dateOrder ?? detectedDateFormat.dateOrder ?? 'DMY' })
   let duplicates = 0, newMessages = 0, imported = 0, ignored = 0, unmatched = 0
   for (const item of parsedMessages) {
     const isExpense = item.parsed.kind === 'expense'
@@ -157,7 +165,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
         await legacy.save()
         if (legacyExpense) {
           const correctedDate = new Date(item.sentAt.getTime() + Number(item.parsed?.dayOffset ?? 0) * 86400000)
-          legacyExpense.date = correctedDate.toISOString().slice(0, 10)
+          legacyExpense.date = isoDateOf(correctedDate)
           await legacyExpense.save()
         }
         duplicates++
@@ -201,7 +209,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
       const legacyMessages = await ImportedMessage.find({
         householdId: req.household._id,
         sender: item.sender,
-        sentAt: item.sentAt,
+        sentAt: { $in: legacyTimestampCandidates(item.sentAt) },
         status: 'approved',
       }).select('sender sentAt text parsed').lean()
       if (isLegacyDuplicateExpense(item, legacyMessages)) {

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isLegacyDuplicateExpense } from '../src/services/whatsapp/importDeduplication.js'
+import { isLegacyDuplicateExpense, legacyTimestampCandidates } from '../src/services/whatsapp/importDeduplication.js'
 
 const candidate = {
   sender: 'Biro 🖤',
@@ -32,7 +32,7 @@ test('does not treat another sender or amount as a duplicate', () => {
 })
 
 test('matches legacy records with an old month/day-swapped timestamp', () => {
-  const nov12 = new Date('2026-11-12T21:46:34.000Z')
+  const nov12 = new Date('2026-11-12T16:16:34.000Z')
   const dec11 = new Date('2026-12-11T21:46:34.000Z')
   assert.equal(isLegacyDuplicateExpense({
     sender: 'Biro 🖤',
@@ -41,6 +41,36 @@ test('matches legacy records with an old month/day-swapped timestamp', () => {
   }, [{
     sender: 'Biro 🖤',
     sentAt: dec11,
+    text: '533-Bazar',
+  }]), true)
+})
+
+
+test('provides household-local, legacy UTC and valid swapped timestamp candidates', () => {
+  const instant = new Date('2026-11-13T20:29:22.000Z')
+  const candidates = legacyTimestampCandidates(instant)
+  assert.ok(candidates.some((date) => date.getTime() === instant.getTime()))
+  assert.ok(candidates.some((date) => date.toISOString() === '2026-11-14T01:59:22.000Z'),
+    'legacy UTC wall-clock representation is included')
+  assert.ok(!candidates.some((date) => date.toISOString().startsWith('2027-01-')),
+    'a day greater than twelve is not treated as a month')
+
+  const ambiguous = legacyTimestampCandidates(new Date('2026-11-12T16:16:34.000Z'))
+  assert.ok(ambiguous.some((date) => date.toISOString() === '2026-12-11T16:16:34.000Z'),
+    'the swapped real instant is included')
+  assert.ok(ambiguous.some((date) => date.toISOString() === '2026-12-11T21:46:34.000Z'),
+    'the swapped legacy UTC timestamp is included')
+})
+
+test('matches old UTC-stored records against the current household-local timestamp', () => {
+  const localInstant = new Date('2026-11-12T16:16:34.000Z')
+  assert.equal(isLegacyDuplicateExpense({
+    sender: 'Biro 🖤',
+    sentAt: localInstant,
+    parsed: { kind: 'expense', amount: 533, title: 'Bazar', dayOffset: 0 },
+  }, [{
+    sender: 'Biro 🖤',
+    sentAt: new Date('2026-12-11T21:46:34.000Z'),
     text: '533-Bazar',
   }]), true)
 })
