@@ -17,9 +17,22 @@ function parsedParts(message) {
  * The timestamp is intentionally exact: two same-value purchases at different
  * times remain distinct expenses.
  */
+function sameMessageTime(left, right) {
+  const a = new Date(left)
+  const b = new Date(right)
+  if (a.getTime() === b.getTime()) return true
+  const sameClock = a.getFullYear() === b.getFullYear()
+    && a.getHours() === b.getHours()
+    && a.getMinutes() === b.getMinutes()
+    && a.getSeconds() === b.getSeconds()
+    && a.getMilliseconds() === b.getMilliseconds()
+  const swappedDate = a.getMonth() === b.getDate() - 1
+    && a.getDate() === b.getMonth() + 1
+  return sameClock && swappedDate
+}
+
 export function isLegacyDuplicateExpense(candidate, existingMessages = []) {
   if (candidate?.parsed?.kind !== 'expense' || !candidate.sender || !candidate.sentAt) return false
-  const candidateTime = new Date(candidate.sentAt).getTime()
   const expected = [
     Number(candidate.parsed.amount),
     normalize(candidate.parsed.title),
@@ -28,7 +41,7 @@ export function isLegacyDuplicateExpense(candidate, existingMessages = []) {
 
   return existingMessages.some((message) => {
     if (normalize(message.sender) !== normalize(candidate.sender)) return false
-    if (new Date(message.sentAt).getTime() !== candidateTime) return false
+    if (!sameMessageTime(message.sentAt, candidate.sentAt)) return false
     return parsedParts(message).some((parsed) => [
       Number(parsed.amount),
       normalize(parsed.title),
