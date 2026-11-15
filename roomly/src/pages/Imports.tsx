@@ -190,8 +190,8 @@ export function ImportsPage() {
             <p className="text-sm font-medium">Chat date format</p>
             {dateOrder ? <p className="mt-1 text-xs text-muted">{dateOrderInferred ? 'Detected automatically from unambiguous dates.' : 'Confirm the date order used in this WhatsApp export.'}</p> : <p className="mt-1 text-xs text-muted">The dates in this export are ambiguous. Choose the format used by the original phone.</p>}
             <div className="mt-2 flex flex-wrap gap-2">
-              <button type="button" disabled={busy} onClick={() => setDateOrder('DMY')} aria-pressed={dateOrder === 'DMY'} className={`rounded-lg border px-3 py-2 text-sm ${dateOrder === 'DMY' ? 'border-accent-strong bg-accent-soft font-semibold text-accent-strong' : 'border-line bg-surface'}`}>DD/MM/YY · 11/12 = 11 December</button>
-              <button type="button" disabled={busy} onClick={() => setDateOrder('MDY')} aria-pressed={dateOrder === 'MDY'} className={`rounded-lg border px-3 py-2 text-sm ${dateOrder === 'MDY' ? 'border-accent-strong bg-accent-soft font-semibold text-accent-strong' : 'border-line bg-surface'}`}>MM/DD/YY · 11/12 = November 12</button>
+              <button type="button" disabled={busy} onClick={() => { setDateOrder('DMY'); setDateOrderInferred(false) }} aria-pressed={dateOrder === 'DMY'} className={`rounded-lg border px-3 py-2 text-sm ${dateOrder === 'DMY' ? 'border-accent-strong bg-accent-soft font-semibold text-accent-strong' : 'border-line bg-surface'}`}>DD/MM/YY · 11/12 = 11 December</button>
+              <button type="button" disabled={busy} onClick={() => { setDateOrder('MDY'); setDateOrderInferred(false) }} aria-pressed={dateOrder === 'MDY'} className={`rounded-lg border px-3 py-2 text-sm ${dateOrder === 'MDY' ? 'border-accent-strong bg-accent-soft font-semibold text-accent-strong' : 'border-line bg-surface'}`}>MM/DD/YY · 11/12 = November 12</button>
             </div>
           </div>
           <p className="hidden sm:flex text-sm text-muted">Choose your name below. Roomly matches the remaining senders to existing members where possible and creates missing members automatically.</p>
