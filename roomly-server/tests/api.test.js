@@ -49,7 +49,7 @@ describe('households', () => {
   it('creates a household with the creator as admin; member id equals user id', async () => {
     const u = await newUser('Rahul Sharma')
     const h = await newHousehold(u, 'Casa 4')
-    assert.match(h.inviteCode, /^\\d{4}$/)
+    assert.match(h.inviteCode, /^\d{4}$/)
     assert.equal(h.members.length, 1)
     assert.equal(h.members[0].id, u.user.id)
     assert.equal(h.members[0].role, 'admin')
