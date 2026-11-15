@@ -7,61 +7,41 @@ import { currentMonth, shiftMonth, todayISO } from '../src/utils/date.js'
 before(setup)
 after(async () => { await teardown(); await fs.rm('./uploads-test', { recursive: true, force: true }) })
 
-describe('auth', () => {
+describe('auth (Google OAuth only)', () => {
   it('health check', async () => {
     const res = await api().get('/api/health')
     assert.equal(res.status, 200)
     assert.equal(res.body.ok, true)
   })
 
-  it('registers, rejects duplicates, validates input', async () => {
-    const ok = await api().post('/api/auth/register').send({ name: 'Rahul Sharma', email: 'Rahul@Example.com', password: 'password123' })
-    assert.equal(ok.status, 201)
-    assert.equal(ok.body.user.email, 'rahul@example.com')
-    assert.equal(ok.body.user.currentHouseholdId, null)
-    assert.ok(ok.body.token)
-    assert.equal(ok.body.user.passwordHash, undefined)
-
-    const dup = await api().post('/api/auth/register').send({ name: 'Other', email: 'rahul@example.com', password: 'password123' })
-    assert.equal(dup.status, 409)
-    const weak = await api().post('/api/auth/register').send({ name: 'X Y', email: 'x@y.com', password: 'short' })
-    assert.equal(weak.status, 422)
-    assert.match(weak.body.message, /8 characters/)
+  it('does not expose password registration, password login, or password recovery routes', async () => {
+    for (const [method, path, body] of [
+      ['post', '/api/auth/register', { name: 'Test User', email: 'test@example.com', password: 'password123' }],
+      ['post', '/api/auth/login', { email: 'test@example.com', password: 'password123' }],
+      ['post', '/api/auth/forgot-password', { email: 'test@example.com' }],
+      ['post', '/api/auth/change-password', { currentPassword: 'old', newPassword: 'newpassword123' }],
+    ]) {
+      const response = await api()[method](path).send(body)
+      assert.equal(response.status, 404, `${method.toUpperCase()} ${path} must not be available`)
+    }
   })
 
-  it('logs in, rejects bad credentials with a friendly 401, protects /me', async () => {
-    const good = await api().post('/api/auth/login').send({ email: 'rahul@example.com', password: 'password123' })
-    assert.equal(good.status, 200)
-    const me = await api().get('/api/auth/me').set('Authorization', `Bearer ${good.body.token}`)
-    assert.equal(me.body.name, 'Rahul Sharma')
+  it('starts Google OAuth when configured and reports missing configuration safely', async () => {
+    const response = await api().get('/api/auth/google')
+    assert.equal(response.status, 503)
+    assert.match(response.body.message, /Google sign-in is not configured/)
+  })
 
-    const bad = await api().post('/api/auth/login').send({ email: 'rahul@example.com', password: 'wrong-password' })
-    assert.equal(bad.status, 401)
-    assert.match(bad.body.message, /don’t match/)
-    const ghost = await api().post('/api/auth/login').send({ email: 'nobody@example.com', password: 'whatever12' })
-    assert.equal(ghost.status, 401)
-    assert.equal(ghost.body.message, bad.body.message) // can't tell which emails exist
-
+  it('protects the profile endpoint and issues valid test sessions', async () => {
+    const user = await newUser('Rahul Sharma')
     assert.equal((await api().get('/api/auth/me')).status, 401)
     assert.equal((await api().get('/api/auth/me').set('Authorization', 'Bearer garbage')).status, 401)
-    assert.equal((await api().get('/api/expenses').set('Authorization', `Bearer ${good.body.token}`)).status, 404) // no household yet
-  })
-
-  it('forgot-password never reveals whether an email exists', async () => {
-    const a = await api().post('/api/auth/forgot-password').send({ email: 'rahul@example.com' })
-    const b = await api().post('/api/auth/forgot-password').send({ email: 'ghost@example.com' })
-    assert.deepEqual(a.body, { ok: true })
-    assert.deepEqual(b.body, { ok: true })
-  })
-
-  it('changing password signs out old tokens and rejects a wrong current password', async () => {
-    const u = await newUser('Pat Kumar')
-    assert.equal((await u.as(api().post('/api/auth/change-password')).send({ currentPassword: 'nope-nope', newPassword: 'newpassword1' })).status, 422)
-    const ok = await u.as(api().post('/api/auth/change-password')).send({ currentPassword: 'password123', newPassword: 'newpassword1' })
-    assert.equal(ok.status, 200)
-    assert.equal((await u.as(api().get('/api/auth/me'))).status, 401) // old token revoked
-    const fresh = await api().get('/api/auth/me').set('Authorization', `Bearer ${ok.body.token}`)
-    assert.equal(fresh.status, 200)
+    const me = await user.as(api().get('/api/auth/me'))
+    assert.equal(me.status, 200)
+    assert.equal(me.body.name, 'Rahul Sharma')
+    assert.equal(me.body.email, user.user.email)
+    assert.equal((await user.as(api().get('/api/expenses'))).status, 404)
+    assert.equal((await user.as(api().post('/api/auth/logout'))).status, 200)
   })
 })
 
