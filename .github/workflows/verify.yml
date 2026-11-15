@@ -34,6 +34,10 @@ jobs:
       WHATSAPP_PHONE_NUMBER_ID: "1065403522"
       WHATSAPP_APP_SECRET: test-app-secret
       WHATSAPP_VERIFY_TOKEN: test-verify-token
+      WHATSAPP_DISPLAY_NUMBER: "919876543210"
+      WHATSAPP_GROUPS_ENABLED: "true"
+      WHATSAPP_SIMULATOR: "true"
+      APP_TIMEZONE: Asia/Kolkata
     services:
       mongodb:
         image: mongo:7
