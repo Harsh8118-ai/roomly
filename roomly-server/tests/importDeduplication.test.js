@@ -12,7 +12,7 @@ test('matches a current expense line against a legacy multiline ledger message',
   assert.equal(isLegacyDuplicateExpense(candidate, [{
     sender: 'Biro 🖤',
     sentAt: candidate.sentAt,
-    text: '120 dinner\\n100 breakfast\\n20 roll',
+    text: '120 dinner\n100 breakfast\n20 roll',
   }]), true)
 })
 
@@ -31,12 +31,16 @@ test('does not treat another sender or amount as a duplicate', () => {
   ]), false)
 })
 
-
 test('matches legacy records with an old month/day-swapped timestamp', () => {
-  const swapped = new Date('2026-12-11T20:29:22.000Z')
-  assert.equal(isLegacyDuplicateExpense(candidate, [{
+  const nov12 = new Date('2026-11-12T21:46:34.000Z')
+  const dec11 = new Date('2026-12-11T21:46:34.000Z')
+  assert.equal(isLegacyDuplicateExpense({
     sender: 'Biro 🖤',
-    sentAt: swapped,
-    text: '120 dinner\\n100 breakfast',
+    sentAt: nov12,
+    parsed: { kind: 'expense', amount: 533, title: 'Bazar', dayOffset: 0 },
+  }, [{
+    sender: 'Biro 🖤',
+    sentAt: dec11,
+    text: '533-Bazar',
   }]), true)
 })
