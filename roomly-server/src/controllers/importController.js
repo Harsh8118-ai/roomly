@@ -8,7 +8,7 @@ import { nextTone } from '../services/householdService.js'
 import { ApiError } from '../utils/ApiError.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { isMonthClosed } from '../services/settlementService.js'
-import { monthOf } from '../utils/date.js'
+import { monthOf, isoDateOf } from '../utils/date.js'
 import { publish } from '../services/events.js'
 
 const MAX_EXPORT_CHARS = 10 * 1024 * 1024
@@ -53,7 +53,7 @@ async function createImportedExpense({ household, user, message, memberId }) {
   const title = String(message.parsed?.title ?? '').trim()
   const category = CATEGORY_IDS.includes(message.parsed?.category) ? message.parsed.category : 'other'
   const sentAt = new Date(message.sentAt)
-  const date = new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000).toISOString().slice(0, 10)
+  const date = isoDateOf(new Date(sentAt.getTime() + Number(message.parsed?.dayOffset ?? 0) * 86400000))
   if (!Number.isInteger(amount) || amount < 1 || amount > 500000 || !title || title.length > 80) return { invalid: true }
   if (await isMonthClosed(household, monthOf(date))) return { closed: true }
   const whatsappMessageId = 'import:' + message._id
@@ -160,7 +160,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
         await legacy.save()
         if (legacyExpense) {
           const correctedDate = new Date(item.sentAt.getTime() + Number(item.parsed?.dayOffset ?? 0) * 86400000)
-          legacyExpense.date = correctedDate.toISOString().slice(0, 10)
+          legacyExpense.date = isoDateOf(correctedDate)
           await legacyExpense.save()
         }
         duplicates++
