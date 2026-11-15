@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isLegacyDuplicateExpense } from '../src/services/whatsapp/importDeduplication.js'
+import { isLegacyDuplicateExpense, legacyTimestampCandidates } from '../src/services/whatsapp/importDeduplication.js'
 
 const candidate = {
   sender: 'Biro 🖤',
