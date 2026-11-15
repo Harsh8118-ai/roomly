@@ -48,7 +48,9 @@ test('matches legacy records with an old month/day-swapped timestamp', () => {
 
 test('provides exact and month/day-swapped timestamp query candidates', () => {
   const candidates = legacyTimestampCandidates(candidate.sentAt)
-  assert.equal(candidates.length, 2)
+  assert.equal(candidates.length, 1, '13 cannot be a month, so date order is already clear')
   assert.equal(candidates[0].toISOString(), candidate.sentAt.toISOString())
-  assert.equal(candidates[1].toISOString(), '2026-12-13T20:29:22.000Z')
+  const ambiguous = legacyTimestampCandidates(new Date('2026-11-12T21:46:34.000Z'))
+  assert.equal(ambiguous.length, 2)
+  assert.equal(ambiguous[1].toISOString(), '2026-12-11T21:46:34.000Z')
 })
