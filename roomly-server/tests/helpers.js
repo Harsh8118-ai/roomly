@@ -23,7 +23,7 @@ let n = 0
  */
 export async function newUser(name = 'Test User', email) {
   const normalizedEmail = (email ?? `user${++n}-${Date.now()}@example.com`).toLowerCase()
-  const doc = await User.create({ name, email: normalizedEmail, googleId: `test-google-${n}-${Date.now()}` })
+  const doc = await User.create({ name, email: normalizedEmail, googleId: `test-google-${normalizedEmail}` })
   const user = { id: String(doc._id), name: doc.name, email: doc.email, avatarUrl: doc.avatarUrl }
   const token = signToken(doc)
   return { token, user, as: (r) => r.set('Authorization', `Bearer ${token}`) }
