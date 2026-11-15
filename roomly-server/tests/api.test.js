@@ -70,7 +70,8 @@ describe('households', () => {
     const joined = await joinHousehold(friend, h.inviteCode.toLowerCase())
     assert.equal(joined.members.length, 3)
     assert.equal((await friend.as(api().post('/api/households/join')).send({ inviteCode: h.inviteCode })).status, 409)
-    assert.equal((await friend.as(api().post('/api/households/join')).send({ inviteCode: '0000' })).status, 404)
+    const wrongCode = h.inviteCode === '0000' ? '0001' : '0000'
+    assert.equal((await friend.as(api().post('/api/households/join')).send({ inviteCode: wrongCode })).status, 404)
 
     assert.equal((await friend.as(api().patch('/api/households/current')).send({ name: 'Hijacked' })).status, 403)
     const renamed = await owner.as(api().patch('/api/households/current')).send({ name: 'Flat 303' })
