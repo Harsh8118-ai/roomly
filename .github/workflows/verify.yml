@@ -23,7 +23,7 @@ jobs:
         working-directory: roomly
 
   backend:
-    name: Backend JavaScript syntax
+    name: Backend tests and JavaScript syntax
     runs-on: ubuntu-latest
     env:
       NODE_ENV: test
