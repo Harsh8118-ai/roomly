@@ -28,6 +28,16 @@ jobs:
     env:
       # Tests use a disposable secret; never a production credential.
       JWT_SECRET: roomly-ci-test-secret-not-used-outside-ci
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
