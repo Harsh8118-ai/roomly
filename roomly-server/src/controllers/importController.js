@@ -2,6 +2,7 @@ import { ChatImport } from '../models/ChatImport.js'
 import { ImportedMessage } from '../models/ImportedMessage.js'
 import { Expense } from '../models/Expense.js'
 import { parseWhatsAppExport, detectWhatsAppDateFormat } from '../services/whatsapp/exportParser.js'
+import { isLegacyDuplicateExpense } from '../services/whatsapp/importDeduplication.js'
 import { CATEGORY_IDS, MAX_MEMBERS } from '../constants.js'
 import { nextTone } from '../services/householdService.js'
 import { ApiError } from '../utils/ApiError.js'
@@ -190,6 +191,23 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
         } else if (recovered.closed) unmatched++
       }
       continue
+    }
+
+    // Backward compatibility: older importer versions stored one ledger row
+    // for a multiline WhatsApp message. The current parser emits one row per
+    // expense line, so their fingerprints cannot match. Match the original
+    // sender + exact message timestamp + parsed amount/title before inserting.
+    if (isExpense) {
+      const legacyMessages = await ImportedMessage.find({
+        householdId: req.household._id,
+        sender: item.sender,
+        sentAt: item.sentAt,
+        status: 'approved',
+      }).select('sender sentAt text parsed').lean()
+      if (isLegacyDuplicateExpense(item, legacyMessages)) {
+        duplicates++
+        continue
+      }
     }
 
     const doc = {

@@ -16,10 +16,17 @@ function parseDate(datePart, timePart, dateOrder = 'DMY') {
   const time = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(timePart.trim())
   if (!time) return null
   let hour = Number(time[1])
+  const minute = Number(time[2])
+  const second = Number(time[3] ?? 0)
   const meridiem = time[4]?.toLowerCase()
+  // Reject impossible clock values instead of allowing Date to roll them into
+  // another hour/day (which would corrupt timestamps and duplicate matching).
+  if (minute > 59 || second > 59) return null
+  if (meridiem && (hour < 1 || hour > 12)) return null
+  if (!meridiem && hour > 23) return null
   if (meridiem === 'pm' && hour < 12) hour += 12
   if (meridiem === 'am' && hour === 12) hour = 0
-  const value = new Date(year, month - 1, day, hour, Number(time[2]), Number(time[3] ?? 0))
+  const value = new Date(year, month - 1, day, hour, minute, second)
   return Number.isNaN(value.getTime()) || value.getFullYear() !== year || value.getMonth() !== month - 1 || value.getDate() !== day ? null : value
 }
 
