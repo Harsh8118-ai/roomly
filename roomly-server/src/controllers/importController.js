@@ -2,7 +2,7 @@ import { ChatImport } from '../models/ChatImport.js'
 import { ImportedMessage } from '../models/ImportedMessage.js'
 import { Expense } from '../models/Expense.js'
 import { parseWhatsAppExport, detectWhatsAppDateFormat } from '../services/whatsapp/exportParser.js'
-import { isLegacyDuplicateExpense } from '../services/whatsapp/importDeduplication.js'
+import { isLegacyDuplicateExpense, legacyTimestampCandidates } from '../services/whatsapp/importDeduplication.js'
 import { CATEGORY_IDS, MAX_MEMBERS } from '../constants.js'
 import { nextTone } from '../services/householdService.js'
 import { ApiError } from '../utils/ApiError.js'
@@ -29,9 +29,12 @@ function senderDisplayName(value) {
 function isSwappedMonthDay(existingDate, incomingDate) {
   const oldDate = new Date(existingDate)
   const newDate = new Date(incomingDate)
-  return oldDate.getFullYear() === newDate.getFullYear()
-    && oldDate.getMonth() + 1 === newDate.getDate()
-    && oldDate.getDate() === newDate.getMonth() + 1
+  return oldDate.getUTCFullYear() === newDate.getUTCFullYear()
+    && oldDate.getUTCMonth() + 1 === newDate.getUTCDate()
+    && oldDate.getUTCDate() === newDate.getUTCMonth() + 1
+    && oldDate.getUTCHours() === newDate.getUTCHours()
+    && oldDate.getUTCMinutes() === newDate.getUTCMinutes()
+    && oldDate.getUTCSeconds() === newDate.getUTCSeconds()
 }
 
 function resolveSenderMember(household, sender) {
@@ -201,7 +204,7 @@ export const uploadWhatsAppExport = asyncHandler(async (req, res) => {
       const legacyMessages = await ImportedMessage.find({
         householdId: req.household._id,
         sender: item.sender,
-        sentAt: item.sentAt,
+        sentAt: { $in: legacyTimestampCandidates(item.sentAt) },
         status: 'approved',
       }).select('sender sentAt text parsed').lean()
       if (isLegacyDuplicateExpense(item, legacyMessages)) {
